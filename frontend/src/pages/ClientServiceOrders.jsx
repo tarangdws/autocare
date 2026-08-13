@@ -26,6 +26,10 @@ export default function ClientServiceOrders() {
 
     useEffect(() => {
         fetchOrders();
+        const interval = setInterval(() => {
+            fetchOrders();
+        }, 5000);
+        return () => clearInterval(interval);
     }, []);
 
     const filteredBookings = filter === 'all'
@@ -123,7 +127,6 @@ export default function ClientServiceOrders() {
                                     <th className="py-3 px-4">Schedule Date & Time</th>
                                     <th className="py-3 px-4">Payment</th>
                                     <th className="py-3 px-4">Status</th>
-                                    <th className="py-3 px-4">Security OTP</th>
                                     <th className="py-3 px-4">Actions</th>
                                 </tr>
                             </thead>
@@ -148,16 +151,6 @@ export default function ClientServiceOrders() {
                                             </span>
                                         </td>
                                         <td className="py-3 px-4"><StatusBadge status={b.status} /></td>
-                                        <td className="py-3 px-4">
-                                            {b.otp ? (
-                                                <button
-                                                    onClick={() => { setSelectedOtp(b); setIsOtpOpen(true); }}
-                                                    className="px-2.5 py-1 text-xs font-mono font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors inline-flex items-center gap-1.5"
-                                                >
-                                                    <i className="fas fa-key text-blue-600"></i> {b.otp}
-                                                </button>
-                                            ) : '-'}
-                                        </td>
                                         <td className="py-3 px-4">
                                             <Link
                                                 to={`/bookings/${b.id}`}

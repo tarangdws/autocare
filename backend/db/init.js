@@ -47,20 +47,20 @@ async function initDatabase() {
             const superUserRes = await client.query(
                 `INSERT INTO users (username, email, password, first_name, last_name, is_staff, is_superuser)
                  VALUES ($1, $2, $3, $4, $5, true, true) RETURNING id`,
-                ['superadmin', 'admin@autocare.com', hashedSuperPass, 'Super', 'Admin']
+                ['superadmin', 'admin@autofusion.com', hashedSuperPass, 'Super', 'Admin']
             );
 
-            // 2. Shop 1 Provider (AutoCare Main Hub)
+            // 2. Shop 1 Provider (AutoFusion Main Hub)
             const shopUser1Res = await client.query(
                 `INSERT INTO users (username, email, password, first_name, last_name, is_staff, is_superuser)
                  VALUES ($1, $2, $3, $4, $5, true, false) RETURNING id`,
-                ['autocare_main', 'mainhub@autocare.com', hashedShopPass, 'Alex', 'Rover']
+                ['autocare_main', 'mainhub@autofusion.com', hashedShopPass, 'Alex', 'Rover']
             );
 
             const shop1Profile = await client.query(
                 `INSERT INTO admin_profiles (user_id, full_name, shop_name, phone_number, city, shop_address)
                  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-                [shopUser1Res.rows[0].id, 'Alex Rover', 'AutoCare Main Hub', '9876543210', 'Ahmedabad', '125 Central Ave, SG Highway']
+                [shopUser1Res.rows[0].id, 'Alex Rover', 'AutoFusion Main Hub', '9876543210', 'Ahmedabad', '125 Central Ave, SG Highway']
             );
 
             // 3. Shop 2 Provider (Elite Motors)
@@ -131,7 +131,7 @@ async function initDatabase() {
                     '5-essential-summer-car-maintenance-tips',
                     'Summer heat can take a heavy toll on your car engine, battery, and tire pressure. Inspecting coolant levels and checking tire inflation regularly prevents unexpected highway breakdowns.',
                     'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=800&q=80',
-                    'AutoCare Technical Team'
+                    'AutoFusion Technical Team'
                 ]
             );
 

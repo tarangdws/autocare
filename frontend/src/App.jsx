@@ -1,18 +1,16 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { Toaster } from 'react-hot-toast';
 
 // Components
 import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-
 // Pages
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import ForgetPasswordPage from './pages/ForgetPasswordPage';
 import AboutUsPage from './pages/AboutUsPage';
-import BlogListPage from './pages/BlogListPage';
 import ContactUsPage from './pages/ContactUsPage';
 import ServicesInfoPage from './pages/ServicesInfoPage';
 
@@ -70,49 +68,49 @@ function ProtectedRoute({ children, allowStaff = false, allowSuperAdmin = false 
 
 function MainApp() {
     return (
-        <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800">
+        <div className="flex min-h-screen bg-slate-50 text-slate-800">
             <Navbar />
-            <main className="max-w-7xl mx-auto w-full flex-1 px-4 sm:px-6 py-8 pb-16">
-                <Routes>
-                    {/* Public General Routes */}
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/signup" element={<SignupPage />} />
-                    <Route path="/forget-password" element={<ForgetPasswordPage />} />
-                    <Route path="/about" element={<AboutUsPage />} />
-                    <Route path="/blog" element={<BlogListPage />} />
-                    <Route path="/contact" element={<ContactUsPage />} />
-                    <Route path="/services-info" element={<ServicesInfoPage />} />
+            <div className="flex-1 flex flex-col min-w-0">
+                <main className="w-full flex-1 px-4 sm:px-6 lg:px-8 py-8">
+                    <Routes>
+                        {/* Public General Routes */}
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route path="/signup" element={<SignupPage />} />
+                        <Route path="/forget-password" element={<ForgetPasswordPage />} />
+                        <Route path="/about" element={<AboutUsPage />} />
+                        <Route path="/contact" element={<ContactUsPage />} />
+                        <Route path="/services-info" element={<ServicesInfoPage />} />
 
-                    {/* Client Protected Routes */}
-                    <Route path="/dashboard" element={<ProtectedRoute><ClientDashboard /></ProtectedRoute>} />
-                    <Route path="/profile" element={<ProtectedRoute><ClientProfilePage /></ProtectedRoute>} />
-                    <Route path="/service-orders" element={<ProtectedRoute><ClientServiceOrders /></ProtectedRoute>} />
-                    <Route path="/book-service" element={<ProtectedRoute><BookServicePage /></ProtectedRoute>} />
-                    <Route path="/bookings/:id" element={<ProtectedRoute><BookingDetailPage /></ProtectedRoute>} />
-                    <Route path="/towing-request" element={<ProtectedRoute><RequestTowingPage /></ProtectedRoute>} />
-                    <Route path="/towing-orders" element={<ProtectedRoute><ClientTowingOrders /></ProtectedRoute>} />
-                    <Route path="/towing/:id" element={<ProtectedRoute><TowingDetailPage /></ProtectedRoute>} />
+                        {/* Client Protected Routes */}
+                        <Route path="/dashboard" element={<ProtectedRoute><ClientDashboard /></ProtectedRoute>} />
+                        <Route path="/profile" element={<ProtectedRoute><ClientProfilePage /></ProtectedRoute>} />
+                        <Route path="/service-orders" element={<ProtectedRoute><ClientServiceOrders /></ProtectedRoute>} />
+                        <Route path="/book-service" element={<ProtectedRoute><BookServicePage /></ProtectedRoute>} />
+                        <Route path="/bookings/:id" element={<ProtectedRoute><BookingDetailPage /></ProtectedRoute>} />
+                        <Route path="/towing-request" element={<ProtectedRoute><RequestTowingPage /></ProtectedRoute>} />
+                        <Route path="/towing-orders" element={<ProtectedRoute><ClientTowingOrders /></ProtectedRoute>} />
+                        <Route path="/towing/:id" element={<ProtectedRoute><TowingDetailPage /></ProtectedRoute>} />
 
-                    {/* Shop Admin (Staff) Routes */}
-                    <Route path="/shop/dashboard" element={<ProtectedRoute allowStaff={true}><ShopDashboard /></ProtectedRoute>} />
-                    <Route path="/shop/profile" element={<ProtectedRoute allowStaff={true}><ShopProfilePage /></ProtectedRoute>} />
-                    <Route path="/shop/service-orders" element={<ProtectedRoute allowStaff={true}><ShopServiceOrders /></ProtectedRoute>} />
-                    <Route path="/shop/towing-orders" element={<ProtectedRoute allowStaff={true}><ShopTowingOrders /></ProtectedRoute>} />
-                    <Route path="/shop/messages" element={<ProtectedRoute allowStaff={true}><ShopMessagesPage /></ProtectedRoute>} />
+                        {/* Shop Admin (Staff) Routes */}
+                        <Route path="/shop/dashboard" element={<ProtectedRoute allowStaff={true}><ShopDashboard /></ProtectedRoute>} />
+                        <Route path="/shop/profile" element={<ProtectedRoute allowStaff={true}><ShopProfilePage /></ProtectedRoute>} />
+                        <Route path="/shop/service-orders" element={<ProtectedRoute allowStaff={true}><ShopServiceOrders /></ProtectedRoute>} />
+                        <Route path="/shop/towing-orders" element={<ProtectedRoute allowStaff={true}><ShopTowingOrders /></ProtectedRoute>} />
+                        <Route path="/shop/messages" element={<ProtectedRoute allowStaff={true}><ShopMessagesPage /></ProtectedRoute>} />
 
-                    {/* Super Admin Routes */}
-                    <Route path="/admin/dashboard" element={<ProtectedRoute allowSuperAdmin={true}><SuperAdminDashboard /></ProtectedRoute>} />
-                    <Route path="/admin/services" element={<ProtectedRoute allowSuperAdmin={true}><SuperAdminServicesPage /></ProtectedRoute>} />
-                    <Route path="/admin/towing" element={<ProtectedRoute allowSuperAdmin={true}><SuperAdminTowingPage /></ProtectedRoute>} />
-                    <Route path="/admin/providers" element={<ProtectedRoute allowSuperAdmin={true}><SuperAdminProvidersPage /></ProtectedRoute>} />
-                    <Route path="/admin/add-provider" element={<ProtectedRoute allowSuperAdmin={true}><SuperAdminAddProviderPage /></ProtectedRoute>} />
+                        {/* Super Admin Routes */}
+                        <Route path="/admin/dashboard" element={<ProtectedRoute allowSuperAdmin={true}><SuperAdminDashboard /></ProtectedRoute>} />
+                        <Route path="/admin/services" element={<ProtectedRoute allowSuperAdmin={true}><SuperAdminServicesPage /></ProtectedRoute>} />
+                        <Route path="/admin/towing" element={<ProtectedRoute allowSuperAdmin={true}><SuperAdminTowingPage /></ProtectedRoute>} />
+                        <Route path="/admin/providers" element={<ProtectedRoute allowSuperAdmin={true}><SuperAdminProvidersPage /></ProtectedRoute>} />
+                        <Route path="/admin/add-provider" element={<ProtectedRoute allowSuperAdmin={true}><SuperAdminAddProviderPage /></ProtectedRoute>} />
 
-                    {/* Fallback */}
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-            </main>
-            <Footer />
+                        {/* Fallback */}
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                </main>
+            </div>
         </div>
     );
 }
@@ -120,6 +118,38 @@ function MainApp() {
 export default function App() {
     return (
         <AuthProvider>
+            <Toaster
+                position="top-center"
+                toastOptions={{
+                    duration: 3000,
+                    className: 'animate-fade',
+                    style: {
+                        background: 'rgba(30, 41, 59, 0.85)',
+                        backdropFilter: 'blur(12px)',
+                        WebkitBackdropFilter: 'blur(12px)',
+                        color: '#f8fafc',
+                        padding: '14px 20px',
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        letterSpacing: '0.025em',
+                    },
+                    success: {
+                        iconTheme: {
+                            primary: '#10b981',
+                            secondary: '#fff',
+                        },
+                    },
+                    error: {
+                        iconTheme: {
+                            primary: '#ef4444',
+                            secondary: '#fff',
+                        },
+                    },
+                }}
+            />
             <BrowserRouter>
                 <MainApp />
             </BrowserRouter>

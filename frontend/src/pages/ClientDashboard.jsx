@@ -25,6 +25,10 @@ export default function ClientDashboard() {
 
     useEffect(() => {
         fetchDashboard();
+        const interval = setInterval(() => {
+            fetchDashboard();
+        }, 5000);
+        return () => clearInterval(interval);
     }, []);
 
     const openOtpView = (order) => {

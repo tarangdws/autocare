@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -11,8 +12,6 @@ export default function ContactUsPage() {
         subject: '',
         message: '',
     });
-    const [success, setSuccess] = useState(false);
-    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -33,16 +32,16 @@ export default function ContactUsPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
-        setSuccess(false);
+        ;
+        ;
         setLoading(true);
 
         try {
             await api.post('/portal/contact', formData);
-            setSuccess(true);
+            toast.success('Message sent successfully!');
             setFormData({ ...formData, subject: '', message: '' });
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to dispatch message. Please ensure you are logged in.');
+            toast.error(err.response?.data?.error || 'Failed to dispatch message. Please ensure you are logged in.');
         } finally {
             setLoading(false);
         }
@@ -55,7 +54,7 @@ export default function ContactUsPage() {
                     Customer Support
                 </span>
                 <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-4">
-                    Get in Touch with AutoCare Pro
+                    Get in Touch with AutoFusion
                 </h1>
                 <p className="text-slate-500 text-sm sm:text-base mt-2">
                     Have questions about repairs, fleet pricing, or emergency towing? Send us a message directly.
@@ -75,7 +74,7 @@ export default function ContactUsPage() {
                                 </div>
                                 <div>
                                     <p className="text-xs text-slate-400 uppercase font-semibold">Assigned Workshop Hub</p>
-                                    <p className="font-semibold text-base text-white">{shop?.shop_name || 'AutoCare Main Operations Hub'}</p>
+                                    <p className="font-semibold text-base text-white">{shop?.shop_name || 'AutoFusion Main Operations Hub'}</p>
                                 </div>
                             </div>
 
@@ -110,23 +109,41 @@ export default function ContactUsPage() {
                             </div>
                         </div>
                     </div>
+                    
+                    <div className="mt-8 border-t border-white/10 pt-8">
+                        <h3 className="text-xl font-bold text-white mb-6">Platform Support</h3>
+
+                        <div className="space-y-6">
+                            <div className="flex gap-4 items-start">
+                                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-emerald-400 shrink-0">
+                                    <i className="fas fa-headset"></i>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-400 uppercase font-semibold">24/7 Customer Care</p>
+                                    <p className="font-semibold text-base text-white">support@autofusion.com</p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 items-start">
+                                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-emerald-400 shrink-0">
+                                    <i className="fas fa-building"></i>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-400 uppercase font-semibold">Corporate Headquarters</p>
+                                    <p className="text-slate-300 text-sm">AutoFusion Tech Park, Bengaluru, India</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Form Card */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
                     <h3 className="text-xl font-bold text-slate-900 mb-5">Send Inquiries & Feedback</h3>
 
-                    {success && (
-                        <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm mb-5 flex items-center">
-                            <i className="fas fa-check-circle mr-2"></i> Thank you! Your message has been routed to your service shop team.
-                        </div>
-                    )}
+                    
 
-                    {error && (
-                        <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm mb-5 flex items-center">
-                            <i className="fas fa-exclamation-circle mr-2"></i> {error}
-                        </div>
-                    )}
+                    
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>

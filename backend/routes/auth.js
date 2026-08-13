@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { JWT_SECRET, requireAuth } = require('../middleware/auth');
+const { sendWelcomeEmail } = require('../utils/email');
 
 // POST /api/auth/signup
 router.post('/signup', async (req, res) => {
@@ -45,6 +46,9 @@ router.post('/signup', async (req, res) => {
             JWT_SECRET,
             { expiresIn: '7d' }
         );
+
+        // Send Welcome Email asynchronously
+        sendWelcomeEmail(user.email, user.first_name || user.username);
 
         res.status(201).json({
             message: 'Registration successful',

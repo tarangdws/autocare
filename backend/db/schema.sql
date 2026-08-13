@@ -1,4 +1,4 @@
--- AutoCare Elite PostgreSQL Database Schema
+-- AutoFusion PostgreSQL Database Schema
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,

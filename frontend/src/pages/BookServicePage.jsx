@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import StripePaymentModal from '../components/StripePaymentModal';
+import PreBookingOtpModal from '../components/PreBookingOtpModal';
 
 export default function BookServicePage() {
     const { user } = useAuth();
@@ -27,11 +29,11 @@ export default function BookServicePage() {
 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState('');
 
     // Stripe modal state
     const [createdBooking, setCreatedBooking] = useState(null);
     const [isStripeOpen, setIsStripeOpen] = useState(false);
+    const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchServices = async () => {
@@ -74,21 +76,37 @@ export default function BookServicePage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        ;
 
         if (selectedServiceIds.length === 0) {
-            setError('Please select at least one service offering.');
+            toast.error('Please select at least one service offering.');
             return;
         }
 
         setSubmitting(true);
         try {
+            await api.post('/portal/send-otp', {
+                email: formData.customer_email,
+                contextMessage: 'Your AutoFusion Service Booking Verification Code'
+            });
+            setIsOtpModalOpen(true);
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to send OTP to your email. Please check your email address.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleVerifyAndSubmit = async (otpCode) => {
+        try {
             const res = await api.post('/portal/book-service', {
                 ...formData,
                 service_ids: selectedServiceIds,
+                otp: otpCode,
             });
 
             const { booking, stripe } = res.data;
+            setIsOtpModalOpen(false);
 
             if (formData.payment_method === 'online') {
                 setCreatedBooking({ ...booking, total_cost: totalCost, stripe_payment_intent_id: stripe?.payment_intent_id });
@@ -97,9 +115,7 @@ export default function BookServicePage() {
                 navigate(`/bookings/${booking.id}`);
             }
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to create booking. Please check all fields.');
-        } finally {
-            setSubmitting(false);
+            throw err;
         }
     };
 
@@ -125,12 +141,6 @@ export default function BookServicePage() {
                     Select services, schedule a convenient time slot at <strong className="text-slate-800">{shop?.shop_name || 'Assigned Workshop'}</strong>.
                 </p>
             </div>
-
-            {error && (
-                <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm mb-6 flex items-center">
-                    <i className="fas fa-exclamation-circle mr-2"></i> {error}
-                </div>
-            )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* 1. Choose Services */}
@@ -331,6 +341,12 @@ export default function BookServicePage() {
                 booking={createdBooking}
                 amount={totalCost}
                 onPaymentSuccess={handlePaymentSuccess}
+            />
+            <PreBookingOtpModal
+                isOpen={isOtpModalOpen}
+                onClose={() => setIsOtpModalOpen(false)}
+                onVerify={handleVerifyAndSubmit}
+                email={formData.customer_email}
             />
         </div>
     );

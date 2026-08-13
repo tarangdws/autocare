@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../api';
 import StatusBadge from '../components/StatusBadge';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function ShopServiceOrders() {
     const [bookings, setBookings] = useState([]);
@@ -45,7 +47,7 @@ export default function ShopServiceOrders() {
             await api.put(`/shop/service-orders/${bookingId}`, { status: newStatus });
             fetchOrders();
         } catch (err) {
-            alert('Failed to update booking status');
+            toast.error('Failed to update booking status');
         }
     };
 
@@ -70,7 +72,7 @@ export default function ShopServiceOrders() {
             setIsEditModalOpen(false);
             fetchOrders();
         } catch (err) {
-            alert('Failed to update order details');
+            toast.error('Failed to update order details');
         } finally {
             setSaving(false);
         }
@@ -146,7 +148,6 @@ export default function ShopServiceOrders() {
                                     <th className="py-3 px-4">Customer Info</th>
                                     <th className="py-3 px-4">Vehicle & Packages</th>
                                     <th className="py-3 px-4">Scheduled For</th>
-                                    <th className="py-3 px-4">Security OTP</th>
                                     <th className="py-3 px-4">Payment</th>
                                     <th className="py-3 px-4">Current Status</th>
                                     <th className="py-3 px-4">Actions</th>
@@ -170,16 +171,6 @@ export default function ShopServiceOrders() {
                                         <td className="py-3 px-4 text-slate-700">
                                             {new Date(b.preferred_date).toLocaleDateString()}
                                             <span className="block text-xs text-slate-500">{b.preferred_time}</span>
-                                        </td>
-                                        <td className="py-3 px-4">
-                                            <code className="bg-slate-100 px-2 py-1 rounded text-blue-600 font-mono font-bold text-xs">
-                                                {b.otp || 'N/A'}
-                                            </code>
-                                            {b.otp_verified && (
-                                                <span className="block text-xs text-emerald-600 font-semibold mt-1">
-                                                    <i className="fas fa-check-double"></i> Verified
-                                                </span>
-                                            )}
                                         </td>
                                         <td className="py-3 px-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
@@ -310,6 +301,7 @@ export default function ShopServiceOrders() {
                     </div>
                 </div>
             )}
+            
         </div>
     );
 }

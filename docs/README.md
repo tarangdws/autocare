@@ -1,4 +1,4 @@
-# AutoCare Elite — Documentation
+# AutoFusion — Documentation
 
 A multi-tenant car service and roadside assistance platform. Vehicle owners choose a workshop, book services from that workshop's catalog, or raise emergency towing requests. Workshops manage their own catalog and job queue. A platform operator onboards workshops and oversees all activity.
 

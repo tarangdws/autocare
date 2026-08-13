@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -11,7 +12,6 @@ export default function SignupPage() {
         first_name: '',
         last_name: '',
     });
-    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
@@ -24,7 +24,7 @@ export default function SignupPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        ;
         setLoading(true);
 
         try {
@@ -33,7 +33,7 @@ export default function SignupPage() {
             login(token, user);
             navigate('/dashboard');
         } catch (err) {
-            setError(err.response?.data?.error || 'Registration failed. Please try again.');
+            toast.error(err.response?.data?.error || 'Registration failed. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -47,14 +47,10 @@ export default function SignupPage() {
                         <i className="fas fa-user-plus"></i>
                     </div>
                     <h2 className="text-2xl font-bold text-slate-900">Create your Account</h2>
-                    <p className="text-slate-500 text-sm mt-1">Join AutoCare Pro to manage bookings & towing</p>
+                    <p className="text-slate-500 text-sm mt-1">Join AutoFusion to manage bookings & towing</p>
                 </div>
 
-                {error && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-5 flex items-center">
-                        <i className="fas fa-exclamation-circle mr-2"></i> {error}
-                    </div>
-                )}
+                
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">

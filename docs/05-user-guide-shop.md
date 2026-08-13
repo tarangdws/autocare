@@ -4,7 +4,7 @@
 
 For workshop owners, managers and service advisors.
 
-**Demo logins:** `autocare_main` / `shoppass` (AutoCare Main Hub — 4 services) · `elite_motors` / `shoppass` (Elite Motors & Towing — 1 service)
+**Demo logins:** `autocare_main` / `shoppass` (AutoFusion Main Hub — 4 services) · `elite_motors` / `shoppass` (Elite Motors & Towing — 1 service)
 
 ---
 

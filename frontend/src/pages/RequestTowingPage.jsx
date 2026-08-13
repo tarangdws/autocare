@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import PreBookingOtpModal from '../components/PreBookingOtpModal';
 
 export default function RequestTowingPage() {
     const { user } = useAuth();
@@ -9,6 +11,7 @@ export default function RequestTowingPage() {
 
     const [formData, setFormData] = useState({
         full_name: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : '',
+        email: user ? user.email || '' : '',
         phone_number: '',
         vehicle_details: '',
         pickup_address: '',
@@ -18,8 +21,8 @@ export default function RequestTowingPage() {
 
     const [locationLoading, setLocationLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState('');
     const [gpsSuccess, setGpsSuccess] = useState(false);
+    const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -27,12 +30,12 @@ export default function RequestTowingPage() {
 
     const handleGetLocation = () => {
         if (!navigator.geolocation) {
-            setError('Geolocation is not supported by your browser.');
+            toast.error('Geolocation is not supported by your browser.');
             return;
         }
 
         setLocationLoading(true);
-        setError('');
+        ;
 
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -62,23 +65,33 @@ export default function RequestTowingPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        ;
 
-        if (!formData.full_name || !formData.phone_number || !formData.vehicle_details || !formData.pickup_address) {
-            setError('Please fill in all required breakdown details.');
+        if (!formData.full_name || !formData.phone_number || !formData.email || !formData.vehicle_details || !formData.pickup_address) {
+            toast.error('Please fill in all required breakdown details, including your email.');
             return;
         }
 
         setSubmitting(true);
         try {
-            const res = await api.post('/portal/towing', formData);
-            const { towing } = res.data;
-            navigate(`/towing/${towing.id}`);
+            await api.post('/portal/send-otp', {
+                email: formData.email,
+                contextMessage: 'Your AutoFusion Emergency Towing Verification Code'
+            });
+            setIsOtpModalOpen(true);
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to dispatch towing request. Please ensure you are logged in.');
+            toast.error(err.response?.data?.error || 'Failed to send OTP to your email. Please check your email address.');
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleVerifyAndSubmit = async (otpCode) => {
+        const payload = { ...formData, otp: otpCode };
+        const res = await api.post('/portal/towing', payload);
+        const { towing } = res.data;
+        setIsOtpModalOpen(false);
+        navigate(`/towing/${towing.id}`);
     };
 
     return (
@@ -103,11 +116,7 @@ export default function RequestTowingPage() {
                 </p>
             </div>
 
-            {error && (
-                <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm mb-6 flex items-center">
-                    <i className="fas fa-exclamation-circle mr-2"></i> {error}
-                </div>
-            )}
+            
 
             <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -132,17 +141,30 @@ export default function RequestTowingPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Active Contact Number</label>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">Email Address</label>
                                 <input
-                                    type="tel"
-                                    name="phone_number"
+                                    type="email"
+                                    name="email"
                                     className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
-                                    placeholder="9876543210"
-                                    value={formData.phone_number}
+                                    placeholder="john@example.com"
+                                    value={formData.email}
                                     onChange={handleChange}
                                     required
                                 />
                             </div>
+                        </div>
+
+                        <div className="mt-4">
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Active Contact Number</label>
+                            <input
+                                type="tel"
+                                name="phone_number"
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+                                placeholder="9876543210"
+                                value={formData.phone_number}
+                                onChange={handleChange}
+                                required
+                            />
                         </div>
 
                         <div className="mt-4">
@@ -236,6 +258,13 @@ export default function RequestTowingPage() {
                     </button>
                 </form>
             </div>
+
+            <PreBookingOtpModal
+                isOpen={isOtpModalOpen}
+                onClose={() => setIsOtpModalOpen(false)}
+                onVerify={handleVerifyAndSubmit}
+                email={formData.email}
+            />
         </div>
     );
 }

@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../api';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function ShopMessagesPage() {
     const [messages, setMessages] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [selectedMessage, setSelectedMessage] = useState(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
 
     const fetchMessages = async () => {
         try {
@@ -35,16 +39,21 @@ export default function ShopMessagesPage() {
         }
     };
 
-    const handleDeleteMessage = async (msgId) => {
-        if (window.confirm('Are you sure you want to delete this message?')) {
-            try {
-                await api.delete(`/shop/messages/${msgId}`);
-                if (selectedMessage?.id === msgId) setSelectedMessage(null);
-                fetchMessages();
-            } catch (err) {
-                alert('Failed to delete message');
-            }
+    const handleDeleteClick = (msgId) => {
+        setItemToDelete(msgId);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
+        try {
+            await api.delete(`/shop/messages/${itemToDelete}`);
+            if (selectedMessage?.id === itemToDelete) setSelectedMessage(null);
+            fetchMessages();
+        } catch (err) {
+            toast.error('Failed to delete message');
         }
+        setItemToDelete(null);
     };
 
     if (loading) {
@@ -130,7 +139,7 @@ export default function ShopMessagesPage() {
                                                         <i className="fas fa-eye"></i> View
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDeleteMessage(m.id)}
+                                                        onClick={() => handleDeleteClick(m.id)}
                                                         className="px-2.5 py-1 text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors inline-flex items-center gap-1"
                                                     >
                                                         <i className="fas fa-trash-alt"></i>
@@ -186,7 +195,7 @@ export default function ShopMessagesPage() {
                                 <i className="fas fa-reply"></i> Reply via Email
                             </a>
                             <button
-                                onClick={() => handleDeleteMessage(selectedMessage.id)}
+                                onClick={() => handleDeleteClick(selectedMessage.id)}
                                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors"
                             >
                                 <i className="fas fa-trash-alt"></i> Delete
@@ -195,6 +204,20 @@ export default function ShopMessagesPage() {
                     </div>
                 )}
             </div>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setItemToDelete(null);
+                }}
+                onConfirm={confirmDelete}
+                title="Delete Message"
+                message="Are you sure you want to delete this message? This action cannot be undone."
+                confirmText="Delete Message"
+                confirmColor="red"
+            />
+            
         </div>
     );
 }

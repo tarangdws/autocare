@@ -1,4 +1,4 @@
-# AutoCare Elite
+# AutoFusion
 
 A multi-tenant car service and roadside assistance platform. Vehicle owners pick a preferred workshop, book services from that workshop's catalog, or raise emergency towing requests. Each job generates a 6-digit OTP used as handover proof.
 
@@ -26,7 +26,7 @@ A multi-tenant car service and roadside assistance platform. Vehicle owners pick
 
 ## What this project does
 
-AutoCare Elite connects three types of users:
+AutoFusion connects three types of users:
 
 | Role | Flags on `users` | What they do |
 |---|---|---|
@@ -460,7 +460,7 @@ npm run dev        # nodemon, auto-restarts on change
 ```
 
 ```
-AutoCare Elite Express Backend running on http://localhost:5000
+AutoFusion Express Backend running on http://localhost:5000
 ```
 
 Verify it is healthy:
@@ -499,10 +499,10 @@ Created by `node db/init.js`:
 
 | Role | Username | Password | Notes |
 |---|---|---|---|
-| Super Admin | `superadmin` | `adminpass` | `admin@autocare.com` |
-| Shop Admin | `autocare_main` | `shoppass` | Workshop: *AutoCare Main Hub*, Ahmedabad — owns 4 services |
+| Super Admin | `superadmin` | `adminpass` | `admin@autofusion.com` |
+| Shop Admin | `autocare_main` | `shoppass` | Workshop: *AutoFusion Main Hub*, Ahmedabad — owns 4 services |
 | Shop Admin | `elite_motors` | `shoppass` | Workshop: *Elite Motors & Towing*, Ahmedabad — owns 1 service |
-| Client | `john_doe` | `userpass` | Pre-linked to *AutoCare Main Hub*, has 1 sample booking + 1 towing request |
+| Client | `john_doe` | `userpass` | Pre-linked to *AutoFusion Main Hub*, has 1 sample booking + 1 towing request |
 
 These credentials are also hardcoded into a "Demo Accounts" panel on the login page. **Remove that panel before any public deployment.**
 

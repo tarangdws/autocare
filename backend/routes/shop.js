@@ -226,9 +226,20 @@ router.put('/towing-orders/:id', requireStaff, async (req, res) => {
         const { status, full_name, phone_number, vehicle_details, pickup_address } = req.body;
         await db.query(
             `UPDATE towing_requests
-             SET status = $1, full_name = $2, phone_number = $3, vehicle_details = $4, pickup_address = $5
+             SET status = COALESCE($1, status), 
+                 full_name = COALESCE($2, full_name), 
+                 phone_number = COALESCE($3, phone_number), 
+                 vehicle_details = COALESCE($4, vehicle_details), 
+                 pickup_address = COALESCE($5, pickup_address)
              WHERE id = $6`,
-            [status, full_name, phone_number, vehicle_details, pickup_address, req.params.id]
+            [
+                status !== undefined ? status : null,
+                full_name !== undefined ? full_name : null,
+                phone_number !== undefined ? phone_number : null,
+                vehicle_details !== undefined ? vehicle_details : null,
+                pickup_address !== undefined ? pickup_address : null,
+                req.params.id
+            ]
         );
 
         res.json({ message: 'Towing order updated successfully' });

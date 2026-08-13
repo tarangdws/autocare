@@ -26,5 +26,5 @@ app.get('/api/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`AutoCare Elite Express Backend running on http://localhost:${PORT}`);
+    console.log(`AutoFusion Express Backend running on http://localhost:${PORT}`);
 });

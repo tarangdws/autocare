@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../api';
 import StatusBadge from '../components/StatusBadge';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function ShopTowingOrders() {
     const [towingList, setTowingList] = useState([]);
@@ -33,7 +35,7 @@ export default function ShopTowingOrders() {
             await api.put(`/shop/towing-orders/${towingId}`, { status: newStatus });
             fetchTowing();
         } catch (err) {
-            alert('Failed to update towing status');
+            toast.error('Failed to update towing status');
         }
     };
 
@@ -107,7 +109,6 @@ export default function ShopTowingOrders() {
                                     <th className="py-3 px-4">Driver & Contact</th>
                                     <th className="py-3 px-4">Vehicle Details</th>
                                     <th className="py-3 px-4">Pickup Location & Map</th>
-                                    <th className="py-3 px-4">Handover OTP</th>
                                     <th className="py-3 px-4">Status</th>
                                     <th className="py-3 px-4">Update Status</th>
                                 </tr>
@@ -136,16 +137,6 @@ export default function ShopTowingOrders() {
                                                 </a>
                                             )}
                                         </td>
-                                        <td className="py-3 px-4">
-                                            <code className="bg-red-50 px-2 py-1 rounded text-red-600 font-mono font-bold text-xs">
-                                                {t.otp || 'N/A'}
-                                            </code>
-                                            {t.otp_verified && (
-                                                <span className="block text-xs text-emerald-600 font-semibold mt-1">
-                                                    <i className="fas fa-check-double"></i> Verified
-                                                </span>
-                                            )}
-                                        </td>
                                         <td className="py-3 px-4"><StatusBadge status={t.status} /></td>
                                         <td className="py-3 px-4">
                                             <select
@@ -166,6 +157,7 @@ export default function ShopTowingOrders() {
                     </div>
                 )}
             </div>
+            
         </div>
     );
 }

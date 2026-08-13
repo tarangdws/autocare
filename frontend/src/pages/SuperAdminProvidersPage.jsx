@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import api from '../api';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function SuperAdminProvidersPage() {
     const [providers, setProviders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
 
     const fetchProviders = async () => {
         try {
@@ -21,15 +25,20 @@ export default function SuperAdminProvidersPage() {
         fetchProviders();
     }, []);
 
-    const handleDelete = async (id, name) => {
-        if (window.confirm(`Are you sure you want to remove Workshop Partner "${name}"? This action cannot be undone.`)) {
-            try {
-                await api.delete(`/admin/providers/${id}`);
-                fetchProviders();
-            } catch (err) {
-                alert('Failed to delete workshop partner');
-            }
+    const handleDeleteClick = (id, name) => {
+        setItemToDelete({ id, name });
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
+        try {
+            await api.delete(`/admin/providers/${itemToDelete.id}`);
+            fetchProviders();
+        } catch (err) {
+            toast.error('Failed to delete workshop partner');
         }
+        setItemToDelete(null);
     };
 
     if (loading) {
@@ -99,7 +108,7 @@ export default function SuperAdminProvidersPage() {
                                         <td className="py-3 px-4 text-slate-600">{new Date(p.created_at).toLocaleDateString()}</td>
                                         <td className="py-3 px-4 text-right">
                                             <button
-                                                onClick={() => handleDelete(p.id, p.shop_name)}
+                                                onClick={() => handleDeleteClick(p.id, p.shop_name)}
                                                 className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
                                                 title="Delete Workshop Provider"
                                             >
@@ -113,6 +122,20 @@ export default function SuperAdminProvidersPage() {
                     </div>
                 )}
             </div>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setItemToDelete(null);
+                }}
+                onConfirm={confirmDelete}
+                title="Remove Workshop Partner"
+                message={`Are you sure you want to remove Workshop Partner "${itemToDelete?.name}"? This action cannot be undone.`}
+                confirmText="Remove Partner"
+                confirmColor="red"
+            />
+            
         </div>
     );
 }

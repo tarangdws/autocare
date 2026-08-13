@@ -39,7 +39,7 @@ export default function ServicesInfoPage() {
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">Vehicle Maintenance & Repair Solutions</h1>
                     <p className="text-slate-500 text-sm sm:text-base mt-1">
-                        Offered by <strong className="text-slate-800">{shop?.shop_name || 'AutoCare Authorized Hub'}</strong> ({shop?.city || 'Ahmedabad'})
+                        Offered by <strong className="text-slate-800">{shop?.shop_name || 'AutoFusion Authorized Hub'}</strong> ({shop?.city || 'Ahmedabad'})
                     </p>
                 </div>
                 {user && (

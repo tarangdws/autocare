@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../api';
 import StatusBadge from '../components/StatusBadge';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function SuperAdminTowingPage() {
     const [towingList, setTowingList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
 
     const fetchTowing = async () => {
         try {
@@ -22,15 +26,20 @@ export default function SuperAdminTowingPage() {
         fetchTowing();
     }, []);
 
-    const handleDelete = async (id) => {
-        if (window.confirm(`Are you sure you want to permanently delete Towing Request #${id}?`)) {
-            try {
-                await api.delete(`/admin/towing/${id}`);
-                fetchTowing();
-            } catch (err) {
-                alert('Failed to delete towing request');
-            }
+    const handleDeleteClick = (id) => {
+        setItemToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
+        try {
+            await api.delete(`/admin/towing/${itemToDelete}`);
+            fetchTowing();
+        } catch (err) {
+            toast.error('Failed to delete towing request');
         }
+        setItemToDelete(null);
     };
 
     const filteredList = filter === 'all'
@@ -105,7 +114,6 @@ export default function SuperAdminTowingPage() {
                                     <th className="py-3 px-4">Vehicle Details</th>
                                     <th className="py-3 px-4">Pickup Location & Coordinates</th>
                                     <th className="py-3 px-4">Status</th>
-                                    <th className="py-3 px-4">OTP</th>
                                     <th className="py-3 px-4 text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -129,12 +137,9 @@ export default function SuperAdminTowingPage() {
                                             )}
                                         </td>
                                         <td className="py-3 px-4"><StatusBadge status={t.status} /></td>
-                                        <td className="py-3 px-4">
-                                            <code className="bg-red-50 px-2 py-0.5 rounded text-red-600 font-mono font-bold text-xs">{t.otp || 'N/A'}</code>
-                                        </td>
                                         <td className="py-3 px-4 text-right">
                                             <button
-                                                onClick={() => handleDelete(t.id)}
+                                                onClick={() => handleDeleteClick(t.id)}
                                                 className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
                                                 title="Delete Towing Request"
                                             >
@@ -148,6 +153,20 @@ export default function SuperAdminTowingPage() {
                     </div>
                 )}
             </div>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setItemToDelete(null);
+                }}
+                onConfirm={confirmDelete}
+                title="Delete Towing Request"
+                message={`Are you sure you want to permanently delete Towing Request #${itemToDelete}? This action cannot be undone.`}
+                confirmText="Delete Request"
+                confirmColor="red"
+            />
+            
         </div>
     );
 }

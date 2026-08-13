@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { requireSuperAdmin } = require('../middleware/auth');
+const { sendAdminCredentialsEmail } = require('../utils/email');
 
 // GET /api/admin/dashboard
 router.get('/dashboard', requireSuperAdmin, async (req, res) => {
@@ -133,6 +134,9 @@ router.post('/add-provider', requireSuperAdmin, async (req, res) => {
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
             [newUser.rows[0].id, full_name || '', shop_name, phone_number || '', city || '', shop_address || '']
         );
+
+        // Send credentials email to the new admin
+        sendAdminCredentialsEmail(email, full_name, shop_name, username, password);
 
         res.status(201).json({ message: 'Service provider added successfully', provider: newProfile.rows[0] });
     } catch (err) {

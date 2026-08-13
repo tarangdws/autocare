@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api from '../api';
 import StatusBadge from '../components/StatusBadge';
 import OtpModal from '../components/OtpModal';
 import StripePaymentModal from '../components/StripePaymentModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function BookingDetailPage() {
     const { id } = useParams();
@@ -11,9 +13,8 @@ export default function BookingDetailPage() {
 
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [isOtpOpen, setIsOtpOpen] = useState(false);
     const [isStripeOpen, setIsStripeOpen] = useState(false);
-    const [actionMsg, setActionMsg] = useState('');
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
     const fetchBooking = async () => {
         try {
@@ -28,24 +29,36 @@ export default function BookingDetailPage() {
 
     useEffect(() => {
         fetchBooking();
+        const interval = setInterval(() => {
+            fetchBooking();
+        }, 5000);
+        return () => clearInterval(interval);
     }, [id]);
 
-    const handleVerifyOtp = async (otpCode) => {
-        const res = await api.post(`/portal/bookings/${id}/verify-otp`, { otp: otpCode });
-        setActionMsg(res.data.message);
-        fetchBooking();
-    };
 
     const handlePaymentSuccess = async (paymentIntentId) => {
-        await api.post('/portal/payment/verify', { payment_intent_id: paymentIntentId, booking_id: booking.id });
-        setActionMsg('Payment confirmed successfully!');
-        fetchBooking();
+        try {
+            await api.post('/portal/payment/verify', { payment_intent_id: paymentIntentId, booking_id: booking.id });
+            setIsStripeOpen(false);
+            toast.success('Payment confirmed successfully!');
+            fetchBooking();
+        } catch (err) {
+            toast.error('Payment verification failed.');
+        }
     };
 
-    const handleCancel = async () => {
-        if (window.confirm('Are you sure you want to cancel this booking?')) {
+    const handleCancel = () => {
+        setIsCancelModalOpen(true);
+    };
+
+    const confirmCancel = async () => {
+        try {
             await api.delete(`/portal/bookings/${id}`);
+            toast.success('Booking cancelled successfully.');
             fetchBooking();
+            setIsCancelModalOpen(false);
+        } catch (err) {
+            console.error('Failed to cancel booking:', err);
         }
     };
 
@@ -93,38 +106,6 @@ export default function BookingDetailPage() {
                 </div>
             </div>
 
-            {actionMsg && (
-                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm mb-6 flex items-center">
-                    <i className="fas fa-check-circle mr-2"></i> {actionMsg}
-                </div>
-            )}
-
-            {/* OTP Showcase Box */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 sm:p-8 mb-8 flex justify-between items-center flex-wrap gap-4 shadow-sm">
-                <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-blue-700">Service Security Passcode</span>
-                    <h2 className="text-3xl sm:text-4xl font-extrabold text-blue-900 tracking-widest font-mono my-1">
-                        {booking.otp || '------'}
-                    </h2>
-                    <p className="text-xs sm:text-sm text-slate-600">
-                        Provide this 6-digit OTP code to your mechanic at the workshop upon pickup.
-                    </p>
-                </div>
-                <div>
-                    {booking.status === 'completed' ? (
-                        <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-500 text-white shadow-sm">
-                            <i className="fas fa-check-double"></i> Job Completed & Verified
-                        </span>
-                    ) : (
-                        <button
-                            onClick={() => setIsOtpOpen(true)}
-                            className="px-6 py-3 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-colors inline-flex items-center gap-2"
-                        >
-                            <i className="fas fa-key"></i> Verify Completion OTP
-                        </button>
-                    )}
-                </div>
-            </div>
 
             {/* Details Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -223,14 +204,6 @@ export default function BookingDetailPage() {
                 </div>
             </div>
 
-            {/* OTP Modal */}
-            <OtpModal
-                isOpen={isOtpOpen}
-                onClose={() => setIsOtpOpen(false)}
-                onVerify={handleVerifyOtp}
-                currentOtp={booking.otp}
-                isVerified={booking.status === 'completed'}
-            />
 
             {/* Stripe Payment Modal */}
             <StripePaymentModal
@@ -239,6 +212,17 @@ export default function BookingDetailPage() {
                 booking={booking}
                 amount={booking.total_cost}
                 onPaymentSuccess={handlePaymentSuccess}
+            />
+
+            {/* Cancel Confirmation Modal */}
+            <ConfirmModal
+                isOpen={isCancelModalOpen}
+                onClose={() => setIsCancelModalOpen(false)}
+                onConfirm={confirmCancel}
+                title="Cancel Service Booking"
+                message="Are you sure you want to cancel this service booking? This action cannot be undone."
+                confirmText="Cancel Booking"
+                confirmColor="red"
             />
         </div>
     );

@@ -1001,7 +1001,7 @@ users:            1 superadmin
                   3 elite_motors     (staff)
                   4 john_doe         (client)
 
-admin_profiles:   1 → user 2  (AutoCare Main Hub)
+admin_profiles:   1 → user 2  (AutoFusion Main Hub)
                   2 → user 3  (Elite Motors & Towing)
 ```
 

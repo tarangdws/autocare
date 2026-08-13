@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import api from '../api';
 import StatusBadge from '../components/StatusBadge';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function ShopDashboard() {
     const [shop, setShop] = useState(null);
@@ -29,7 +31,7 @@ export default function ShopDashboard() {
             await api.put(`/shop/service-orders/${bookingId}`, { status: newStatus });
             fetchShopDashboard();
         } catch (err) {
-            alert('Failed to update booking status');
+            toast.error('Failed to update booking status');
         }
     };
 
@@ -38,7 +40,7 @@ export default function ShopDashboard() {
             await api.put(`/shop/towing-orders/${towingId}`, { status: newStatus });
             fetchShopDashboard();
         } catch (err) {
-            alert('Failed to update towing status');
+            toast.error('Failed to update towing status');
         }
     };
 
@@ -143,7 +145,6 @@ export default function ShopDashboard() {
                                     <th className="py-3 px-4">Vehicle Details</th>
                                     <th className="py-3 px-4">Schedule Date</th>
                                     <th className="py-3 px-4">Status</th>
-                                    <th className="py-3 px-4">Security OTP</th>
                                     <th className="py-3 px-4">Quick Status Update</th>
                                 </tr>
                             </thead>
@@ -158,9 +159,6 @@ export default function ShopDashboard() {
                                         <td className="py-3 px-4 text-slate-700">{b.vehicle_info}</td>
                                         <td className="py-3 px-4 text-slate-600">{new Date(b.preferred_date).toLocaleDateString()} at {b.preferred_time}</td>
                                         <td className="py-3 px-4"><StatusBadge status={b.status} /></td>
-                                        <td className="py-3 px-4">
-                                            <code className="bg-slate-100 px-2 py-0.5 rounded text-blue-600 font-mono font-bold text-xs">{b.otp || 'N/A'}</code>
-                                        </td>
                                         <td className="py-3 px-4">
                                             <select
                                                 className="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:border-blue-600"
@@ -206,7 +204,6 @@ export default function ShopDashboard() {
                                     <th className="py-3 px-4">Vehicle Details</th>
                                     <th className="py-3 px-4">Pickup Location</th>
                                     <th className="py-3 px-4">Status</th>
-                                    <th className="py-3 px-4">OTP</th>
                                     <th className="py-3 px-4">Quick Status Update</th>
                                 </tr>
                             </thead>
@@ -221,9 +218,6 @@ export default function ShopDashboard() {
                                         <td className="py-3 px-4 text-slate-700">{t.vehicle_details}</td>
                                         <td className="py-3 px-4 text-slate-600 max-w-xs truncate">{t.pickup_address}</td>
                                         <td className="py-3 px-4"><StatusBadge status={t.status} /></td>
-                                        <td className="py-3 px-4">
-                                            <code className="bg-red-50 px-2 py-0.5 rounded text-red-600 font-mono font-bold text-xs">{t.otp || 'N/A'}</code>
-                                        </td>
                                         <td className="py-3 px-4">
                                             <select
                                                 className="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:border-blue-600"
@@ -243,6 +237,7 @@ export default function ShopDashboard() {
                     </div>
                 )}
             </div>
+            
         </div>
     );
 }

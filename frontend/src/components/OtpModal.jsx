@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 
 export default function OtpModal({ isOpen, onClose, onVerify, currentOtp, isVerified }) {
     const [enteredOtp, setEnteredOtp] = useState('');
-    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        ;
         if (!enteredOtp || enteredOtp.trim().length !== 6) {
-            setError('Please enter a 6-digit OTP code');
+            toast.error('Please enter a 6-digit OTP code');
             return;
         }
 
@@ -21,7 +21,7 @@ export default function OtpModal({ isOpen, onClose, onVerify, currentOtp, isVeri
             setEnteredOtp('');
             onClose();
         } catch (err) {
-            setError(err.response?.data?.error || 'Verification failed. Please try again.');
+            toast.error(err.response?.data?.error || 'Verification failed. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -63,11 +63,7 @@ export default function OtpModal({ isOpen, onClose, onVerify, currentOtp, isVeri
 
                 {!isVerified && onVerify && (
                     <form onSubmit={handleSubmit}>
-                        {error && (
-                            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-4 flex items-center">
-                                <i className="fas fa-exclamation-circle mr-2"></i> {error}
-                            </div>
-                        )}
+                        
 
                         <div className="mb-5">
                             <label className="block text-sm font-semibold text-slate-700 mb-1">Enter Verification OTP</label>

@@ -26,6 +26,10 @@ export default function ClientTowingOrders() {
 
     useEffect(() => {
         fetchOrders();
+        const interval = setInterval(() => {
+            fetchOrders();
+        }, 5000);
+        return () => clearInterval(interval);
     }, []);
 
     const filteredList = filter === 'all'
@@ -117,7 +121,6 @@ export default function ClientTowingOrders() {
                                     <th className="py-3 px-4">Dispatch Hub</th>
                                     <th className="py-3 px-4">Requested Time</th>
                                     <th className="py-3 px-4">Status</th>
-                                    <th className="py-3 px-4">Handover OTP</th>
                                     <th className="py-3 px-4">Actions</th>
                                 </tr>
                             </thead>
@@ -132,16 +135,6 @@ export default function ClientTowingOrders() {
                                         <td className="py-3 px-4 text-slate-600">{t.shop_name || 'Assigned Workshop'}</td>
                                         <td className="py-3 px-4 text-slate-600">{new Date(t.requested_at).toLocaleString()}</td>
                                         <td className="py-3 px-4"><StatusBadge status={t.status} /></td>
-                                        <td className="py-3 px-4">
-                                            {t.otp ? (
-                                                <button
-                                                    onClick={() => { setSelectedOtp(t); setIsOtpOpen(true); }}
-                                                    className="px-2.5 py-1 text-xs font-mono font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors inline-flex items-center gap-1.5"
-                                                >
-                                                    <i className="fas fa-key text-red-500"></i> {t.otp}
-                                                </button>
-                                            ) : '-'}
-                                        </td>
                                         <td className="py-3 px-4">
                                             <Link
                                                 to={`/towing/${t.id}`}

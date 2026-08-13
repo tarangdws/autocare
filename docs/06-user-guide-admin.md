@@ -192,7 +192,7 @@ In the seeded database:
 
 ```
 users                          admin_profiles
-  1  superadmin                  1 → user 2   AutoCare Main Hub
+  1  superadmin                  1 → user 2   AutoFusion Main Hub
   2  autocare_main  (staff)      2 → user 3   Elite Motors & Towing
   3  elite_motors   (staff)
   4  john_doe       (client)

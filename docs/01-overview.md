@@ -14,7 +14,7 @@ Independent car workshops mostly run on phone calls and paper. A customer calls,
 
 For a multi-location operator or a network of affiliated garages, these problems multiply. There is no single place to see how much work is flowing through which location.
 
-## What AutoCare Elite does
+## What AutoFusion does
 
 It puts the whole cycle — discovery, quoting, booking, tracking, handover, payment — into one system with three participants:
 

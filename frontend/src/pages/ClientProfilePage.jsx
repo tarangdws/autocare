@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -11,8 +12,6 @@ export default function ClientProfilePage() {
     });
     const [shops, setShops] = useState([]);
     const [selectedShopId, setSelectedShopId] = useState('');
-    const [successMsg, setSuccessMsg] = useState('');
-    const [errorMsg, setErrorMsg] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -39,18 +38,18 @@ export default function ClientProfilePage() {
     const handleProfileSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
-        setSuccessMsg('');
-        setErrorMsg('');
+        ;
+        ;
 
         try {
             await api.post('/client/profile', profileData);
             if (selectedShopId) {
                 await api.post('/client/select-shop', { select_shop_id: selectedShopId });
             }
-            setSuccessMsg('Profile and service shop preferences updated successfully!');
+            toast.success('Profile and service shop preferences updated successfully!');
             refreshUser();
         } catch (err) {
-            setErrorMsg(err.response?.data?.error || 'Failed to update profile.');
+            toast.error(err.response?.data?.error || 'Failed to update profile.');
         } finally {
             setSaving(false);
         }
@@ -75,18 +74,6 @@ export default function ClientProfilePage() {
                     Configure personal details and select your preferred authorized repair hub.
                 </p>
             </div>
-
-            {successMsg && (
-                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm mb-6 flex items-center">
-                    <i className="fas fa-check-circle mr-2"></i> {successMsg}
-                </div>
-            )}
-
-            {errorMsg && (
-                <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm mb-6 flex items-center">
-                    <i className="fas fa-exclamation-circle mr-2"></i> {errorMsg}
-                </div>
-            )}
 
             <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
                 <form onSubmit={handleProfileSubmit} className="space-y-6">

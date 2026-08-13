@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 
@@ -15,7 +16,6 @@ export default function SuperAdminAddProviderPage() {
         shop_address: '',
     });
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
 
     const handleChange = (e) => {
@@ -24,14 +24,14 @@ export default function SuperAdminAddProviderPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        ;
         setLoading(true);
 
         try {
-            await api.post('/admin/providers', formData);
+            await api.post('/admin/add-provider', formData);
             navigate('/admin/providers');
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to register workshop provider.');
+            toast.error(err.response?.data?.error || 'Failed to register workshop provider.');
         } finally {
             setLoading(false);
         }
@@ -49,11 +49,7 @@ export default function SuperAdminAddProviderPage() {
                 </p>
             </div>
 
-            {error && (
-                <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm mb-6 flex items-center">
-                    <i className="fas fa-exclamation-circle mr-2"></i> {error}
-                </div>
-            )}
+            
 
             <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
                 <form onSubmit={handleSubmit} className="space-y-6">

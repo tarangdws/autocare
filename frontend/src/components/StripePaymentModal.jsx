@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 
 export default function StripePaymentModal({ isOpen, onClose, booking, amount, onPaymentSuccess }) {
     const [cardNumber, setCardNumber] = useState('4242 •••• •••• 4242');
     const [expDate, setExpDate] = useState('12/28');
     const [cvc, setCvc] = useState('123');
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
 
     if (!isOpen || !booking) return null;
 
     const handlePay = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setError('');
+        ;
 
         try {
             // Simulate Stripe API checkout call
@@ -22,12 +22,12 @@ export default function StripePaymentModal({ isOpen, onClose, booking, amount, o
                     setLoading(false);
                     onClose();
                 } catch (err) {
-                    setError('Payment verification error. Please try again.');
+                    toast.error('Payment verification error. Please try again.');
                     setLoading(false);
                 }
             }, 1200);
         } catch (err) {
-            setError('Stripe payment failed.');
+            toast.error('Stripe payment failed.');
             setLoading(false);
         }
     };
@@ -63,11 +63,7 @@ export default function StripePaymentModal({ isOpen, onClose, booking, amount, o
                     </div>
                 </div>
 
-                {error && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-4 flex items-center">
-                        <i className="fas fa-exclamation-circle mr-2"></i> {error}
-                    </div>
-                )}
+                
 
                 <form onSubmit={handlePay} className="space-y-4">
                     <div>

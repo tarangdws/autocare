@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../api';
 import StatusBadge from '../components/StatusBadge';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function SuperAdminServicesPage() {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
 
     const fetchBookings = async () => {
         try {
@@ -22,15 +26,20 @@ export default function SuperAdminServicesPage() {
         fetchBookings();
     }, []);
 
-    const handleDelete = async (id) => {
-        if (window.confirm(`Are you sure you want to permanently delete Service Booking #${id}?`)) {
-            try {
-                await api.delete(`/admin/services/${id}`);
-                fetchBookings();
-            } catch (err) {
-                alert('Failed to delete booking');
-            }
+    const handleDeleteClick = (id) => {
+        setItemToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
+        try {
+            await api.delete(`/admin/services/${itemToDelete}`);
+            fetchBookings();
+        } catch (err) {
+            toast.error('Failed to delete booking');
         }
+        setItemToDelete(null);
     };
 
     const filteredList = filter === 'all'
@@ -106,7 +115,6 @@ export default function SuperAdminServicesPage() {
                                     <th className="py-3 px-4">Scheduled Date</th>
                                     <th className="py-3 px-4">Payment</th>
                                     <th className="py-3 px-4">Status</th>
-                                    <th className="py-3 px-4">OTP</th>
                                     <th className="py-3 px-4 text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -132,12 +140,9 @@ export default function SuperAdminServicesPage() {
                                             </span>
                                         </td>
                                         <td className="py-3 px-4"><StatusBadge status={b.status} /></td>
-                                        <td className="py-3 px-4">
-                                            <code className="bg-blue-50 px-2 py-0.5 rounded text-blue-700 font-mono font-bold text-xs">{b.otp || 'N/A'}</code>
-                                        </td>
                                         <td className="py-3 px-4 text-right">
                                             <button
-                                                onClick={() => handleDelete(b.id)}
+                                                onClick={() => handleDeleteClick(b.id)}
                                                 className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
                                                 title="Delete Order"
                                             >
@@ -151,6 +156,20 @@ export default function SuperAdminServicesPage() {
                     </div>
                 )}
             </div>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setItemToDelete(null);
+                }}
+                onConfirm={confirmDelete}
+                title="Delete Service Booking"
+                message={`Are you sure you want to permanently delete Service Booking #${itemToDelete}? This action cannot be undone.`}
+                confirmText="Delete Booking"
+                confirmColor="red"
+            />
+            
         </div>
     );
 }
