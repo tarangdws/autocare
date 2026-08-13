@@ -100,7 +100,7 @@ export default function TowingDetailPage() {
                     </p>
                 </div>
                 <div>
-                    {towing.otp_verified || towing.status === 'completed' ? (
+                    {towing.status === 'completed' ? (
                         <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-500 text-white shadow-sm">
                             <i className="fas fa-check-double"></i> Tow Handover Verified & Completed
                         </span>
@@ -184,7 +184,7 @@ export default function TowingDetailPage() {
                 onClose={() => setIsOtpOpen(false)}
                 onVerify={handleVerifyOtp}
                 currentOtp={towing.otp}
-                isVerified={towing.otp_verified || towing.status === 'completed'}
+                isVerified={towing.status === 'completed'}
             />
         </div>
     );

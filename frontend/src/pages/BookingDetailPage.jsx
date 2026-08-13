@@ -37,7 +37,7 @@ export default function BookingDetailPage() {
     };
 
     const handlePaymentSuccess = async (paymentIntentId) => {
-        await api.post('/portal/payment/verify', { payment_intent_id: paymentIntentId });
+        await api.post('/portal/payment/verify', { payment_intent_id: paymentIntentId, booking_id: booking.id });
         setActionMsg('Payment confirmed successfully!');
         fetchBooking();
     };
@@ -111,7 +111,7 @@ export default function BookingDetailPage() {
                     </p>
                 </div>
                 <div>
-                    {booking.otp_verified || booking.status === 'completed' ? (
+                    {booking.status === 'completed' ? (
                         <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-500 text-white shadow-sm">
                             <i className="fas fa-check-double"></i> Job Completed & Verified
                         </span>
@@ -229,7 +229,7 @@ export default function BookingDetailPage() {
                 onClose={() => setIsOtpOpen(false)}
                 onVerify={handleVerifyOtp}
                 currentOtp={booking.otp}
-                isVerified={booking.otp_verified || booking.status === 'completed'}
+                isVerified={booking.status === 'completed'}
             />
 
             {/* Stripe Payment Modal */}

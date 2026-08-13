@@ -172,11 +172,24 @@ router.get('/service-orders', requireStaff, async (req, res) => {
 router.put('/service-orders/:id', requireStaff, async (req, res) => {
     try {
         const { status, customer_name, customer_phone, customer_email, vehicle_info, is_paid } = req.body;
+        
+        const currentRes = await db.query('SELECT * FROM service_bookings WHERE id = $1', [req.params.id]);
+        if (currentRes.rows.length === 0) return res.status(404).json({ error: 'Booking not found' });
+        const current = currentRes.rows[0];
+
         await db.query(
             `UPDATE service_bookings
              SET status = $1, customer_name = $2, customer_phone = $3, customer_email = $4, vehicle_info = $5, is_paid = $6
              WHERE id = $7`,
-            [status, customer_name, customer_phone, customer_email, vehicle_info, is_paid, req.params.id]
+            [
+                status !== undefined ? status : current.status,
+                customer_name !== undefined ? customer_name : current.customer_name,
+                customer_phone !== undefined ? customer_phone : current.customer_phone,
+                customer_email !== undefined ? customer_email : current.customer_email,
+                vehicle_info !== undefined ? vehicle_info : current.vehicle_info,
+                is_paid !== undefined ? is_paid : current.is_paid,
+                req.params.id
+            ]
         );
 
         res.json({ message: 'Service order updated successfully' });

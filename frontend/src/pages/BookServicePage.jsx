@@ -104,7 +104,7 @@ export default function BookServicePage() {
     };
 
     const handlePaymentSuccess = async (paymentIntentId) => {
-        await api.post('/portal/payment/verify', { payment_intent_id: paymentIntentId });
+        await api.post('/portal/payment/verify', { payment_intent_id: paymentIntentId, booking_id: createdBooking.id });
         navigate(`/bookings/${createdBooking.id}`);
     };
 
@@ -147,19 +147,17 @@ export default function BookServicePage() {
                                 <div
                                     key={s.id}
                                     onClick={() => handleServiceToggle(s.id)}
-                                    className={`p-4 rounded-xl cursor-pointer transition-all flex items-center justify-between border-2 ${
-                                        isChecked
-                                            ? 'border-blue-600 bg-blue-50/50 shadow-sm'
-                                            : 'border-slate-200 bg-white hover:border-slate-300'
-                                    }`}
+                                    className={`p-4 rounded-xl cursor-pointer transition-all flex items-center justify-between border-2 ${isChecked
+                                        ? 'border-blue-600 bg-blue-50/50 shadow-sm'
+                                        : 'border-slate-200 bg-white hover:border-slate-300'
+                                        }`}
                                 >
                                     <div>
                                         <p className="font-bold text-slate-900 text-sm sm:text-base">{s.title}</p>
                                         <p className="text-blue-600 font-extrabold text-sm mt-1">₹{parseFloat(s.price_starts_at).toFixed(2)}</p>
                                     </div>
-                                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs transition-colors border-2 ${
-                                        isChecked ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300 text-transparent'
-                                    }`}>
+                                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs transition-colors border-2 ${isChecked ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300 text-transparent'
+                                        }`}>
                                         <i className="fas fa-check"></i>
                                     </div>
                                 </div>
@@ -274,11 +272,10 @@ export default function BookServicePage() {
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Payment Preference</label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                                formData.payment_method === 'cash'
-                                    ? 'border-blue-600 bg-blue-50/50 shadow-sm'
-                                    : 'border-slate-200 bg-white hover:border-slate-300'
-                            }`}>
+                            <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.payment_method === 'cash'
+                                ? 'border-blue-600 bg-blue-50/50 shadow-sm'
+                                : 'border-slate-200 bg-white hover:border-slate-300'
+                                }`}>
                                 <input
                                     type="radio"
                                     name="payment_method"
@@ -295,11 +292,10 @@ export default function BookServicePage() {
                                 </div>
                             </label>
 
-                            <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                                formData.payment_method === 'online'
-                                    ? 'border-blue-600 bg-blue-50/50 shadow-sm'
-                                    : 'border-slate-200 bg-white hover:border-slate-300'
-                            }`}>
+                            <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.payment_method === 'online'
+                                ? 'border-blue-600 bg-blue-50/50 shadow-sm'
+                                : 'border-slate-200 bg-white hover:border-slate-300'
+                                }`}>
                                 <input
                                     type="radio"
                                     name="payment_method"

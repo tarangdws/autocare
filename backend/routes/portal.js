@@ -271,12 +271,18 @@ router.post('/bookings/:id/pay', requireAuth, async (req, res) => {
 // POST /api/portal/payment/verify
 router.post('/payment/verify', requireAuth, async (req, res) => {
     try {
-        const { payment_intent_id } = req.body;
-        if (!payment_intent_id) {
-            return res.status(400).json({ error: 'Payment intent ID is required' });
+        const { payment_intent_id, booking_id } = req.body;
+        if (!payment_intent_id && !booking_id) {
+            return res.status(400).json({ error: 'Payment intent ID or Booking ID is required' });
         }
 
-        const bookingRes = await db.query('SELECT * FROM service_bookings WHERE stripe_payment_intent_id = $1', [payment_intent_id]);
+        let bookingRes;
+        if (booking_id) {
+            bookingRes = await db.query('SELECT * FROM service_bookings WHERE id = $1', [booking_id]);
+        } else {
+            bookingRes = await db.query('SELECT * FROM service_bookings WHERE stripe_payment_intent_id = $1', [payment_intent_id]);
+        }
+
         if (bookingRes.rows.length === 0) {
             return res.status(404).json({ error: 'Booking with given payment intent not found' });
         }
