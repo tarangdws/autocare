@@ -60,6 +60,63 @@ export default function BookServicePage() {
         fetchServices();
     }, [preselectedServiceId]);
 
+    const generateTimeSlots = () => {
+        if (!shop) return [];
+        const slots = [];
+        const openTimeStr = shop.opening_time || '10:00:00';
+        const closeTimeStr = shop.closing_time || '19:00:00';
+        const lunchStartStr = shop.lunch_start_time || '13:00:00';
+        const lunchEndStr = shop.lunch_end_time || '14:00:00';
+
+        const toMinutes = (timeStr) => {
+            const [h, m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
+        };
+
+        const formatTime = (mins) => {
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            const period = h >= 12 ? 'PM' : 'AM';
+            const displayH = h % 12 === 0 ? 12 : h % 12;
+            const displayM = m.toString().padStart(2, '0');
+            return `${displayH}:${displayM} ${period}`;
+        };
+
+        const formatBackendTime = (mins) => {
+            const h = Math.floor(mins / 60).toString().padStart(2, '0');
+            const m = (mins % 60).toString().padStart(2, '0');
+            return `${h}:${m}`;
+        };
+
+        const openMins = toMinutes(openTimeStr);
+        const closeMins = toMinutes(closeTimeStr);
+        const lunchStartMins = toMinutes(lunchStartStr);
+        const lunchEndMins = toMinutes(lunchEndStr);
+
+        for (let current = openMins; current < closeMins; current += 60) {
+            const nextSlot = current + 60;
+            if (current >= lunchStartMins && current < lunchEndMins) {
+                continue;
+            }
+            if (nextSlot > closeMins) {
+                break;
+            }
+            slots.push({
+                label: `${formatTime(current)} to ${formatTime(nextSlot)}`,
+                value: formatBackendTime(current)
+            });
+        }
+        return slots;
+    };
+
+    const timeSlots = generateTimeSlots();
+
+    useEffect(() => {
+        if (timeSlots.length > 0 && !timeSlots.find(s => s.value === formData.preferred_time)) {
+            setFormData(prev => ({ ...prev, preferred_time: timeSlots[0].value }));
+        }
+    }, [shop]);
+
     const handleServiceToggle = (id) => {
         if (selectedServiceIds.includes(id)) {
             if (selectedServiceIds.length > 1) {
@@ -76,7 +133,24 @@ export default function BookServicePage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        ;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Parse the preferred_date string manually to avoid timezone shift issues (YYYY-MM-DD)
+        const [year, month, day] = formData.preferred_date.split('-').map(Number);
+        const selectedDate = new Date(year, month - 1, day);
+        selectedDate.setHours(0, 0, 0, 0);
+
+        if (selectedDate.getTime() === today.getTime()) {
+            toast.error('Same-day booking is not available. Please select a future date.');
+            return;
+        }
+
+        if (selectedDate.getTime() < today.getTime()) {
+            toast.error('You cannot select a past date for your service booking.');
+            return;
+        }
 
         if (selectedServiceIds.length === 0) {
             toast.error('Please select at least one service offering.');
@@ -85,6 +159,11 @@ export default function BookServicePage() {
 
         setSubmitting(true);
         try {
+            await api.post('/portal/check-timeslot', {
+                preferred_date: formData.preferred_date,
+                preferred_time: formData.preferred_time
+            });
+
             await api.post('/portal/send-otp', {
                 email: formData.customer_email,
                 contextMessage: 'Your AutoFusion Service Booking Verification Code'
@@ -258,13 +337,16 @@ export default function BookServicePage() {
 
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-1">Preferred Time Slot</label>
-                            <input
-                                type="time"
+                            <select
                                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
                                 value={formData.preferred_time}
                                 onChange={(e) => setFormData({ ...formData, preferred_time: e.target.value })}
                                 required
-                            />
+                            >
+                                {timeSlots.map(slot => (
+                                    <option key={slot.value} value={slot.value}>{slot.label}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 

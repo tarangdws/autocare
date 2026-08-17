@@ -50,6 +50,41 @@ router.get('/services', requireAuth, async (req, res) => {
     }
 });
 
+// POST /api/portal/check-timeslot
+router.post('/check-timeslot', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { preferred_date, preferred_time } = req.body;
+
+        if (!preferred_date || !preferred_time) {
+            return res.status(400).json({ error: 'Date and time are required' });
+        }
+
+        const shopRes = await db.query('SELECT select_shop_id FROM select_shops WHERE user_id = $1', [userId]);
+        const shopId = shopRes.rows.length > 0 ? shopRes.rows[0].select_shop_id : null;
+
+        let timeslotQuery = `SELECT id FROM service_bookings WHERE preferred_date = $1 AND preferred_time = $2 AND status != 'cancelled'`;
+        let timeslotParams = [preferred_date, preferred_time];
+
+        if (shopId) {
+            timeslotQuery += ` AND shop_id = $3`;
+            timeslotParams.push(shopId);
+        } else {
+            timeslotQuery += ` AND shop_id IS NULL`;
+        }
+
+        const existingBookingRes = await db.query(timeslotQuery, timeslotParams);
+        if (existingBookingRes.rows.length > 0) {
+            return res.status(400).json({ error: 'This time slot is already booked for the selected shop. Please choose another time.' });
+        }
+
+        res.json({ message: 'Timeslot is available' });
+    } catch (err) {
+        console.error('Check timeslot error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // POST /api/portal/send-otp
 router.post('/send-otp', async (req, res) => {
     try {
@@ -59,9 +94,9 @@ router.post('/send-otp', async (req, res) => {
         }
 
         const otp = generateOtp();
-        
+
         await db.query('DELETE FROM otp_verifications WHERE email = $1', [email]);
-        
+
         await db.query(
             `INSERT INTO otp_verifications (email, otp, expires_at) 
              VALUES ($1, $2, NOW() + INTERVAL '1 minute')`,
@@ -69,7 +104,7 @@ router.post('/send-otp', async (req, res) => {
         );
 
         await sendOTPByEmail(email, otp, contextMessage || 'Your Pre-Booking Verification Code');
-        
+
         res.json({ message: 'OTP sent successfully' });
     } catch (err) {
         console.error('Send OTP error:', err);
@@ -108,6 +143,22 @@ router.post('/book-service', requireAuth, async (req, res) => {
         // Get user's selected shop
         const shopRes = await db.query('SELECT select_shop_id FROM select_shops WHERE user_id = $1', [userId]);
         const shopId = shopRes.rows.length > 0 ? shopRes.rows[0].select_shop_id : null;
+
+        // Check for timeslot collision
+        let timeslotQuery = `SELECT id FROM service_bookings WHERE preferred_date = $1 AND preferred_time = $2 AND status != 'cancelled'`;
+        let timeslotParams = [preferred_date, preferred_time];
+
+        if (shopId) {
+            timeslotQuery += ` AND shop_id = $3`;
+            timeslotParams.push(shopId);
+        } else {
+            timeslotQuery += ` AND shop_id IS NULL`;
+        }
+
+        const existingBookingRes = await db.query(timeslotQuery, timeslotParams);
+        if (existingBookingRes.rows.length > 0) {
+            return res.status(400).json({ error: 'This time slot is already booked for the selected shop. Please choose another time.' });
+        }
 
         const bookingRes = await db.query(
             `INSERT INTO service_bookings (user_id, shop_id, customer_name, customer_phone, customer_email, vehicle_info, preferred_date, preferred_time, additional_notes, status, otp, otp_verified, payment_method, is_paid)
@@ -155,13 +206,7 @@ router.post('/book-service', requireAuth, async (req, res) => {
             }
         }
 
-        let shopName = '';
-        if (shopId) {
-            const sNameRes = await db.query('SELECT shop_name FROM auth_users WHERE id = $1', [shopId]);
-            if (sNameRes.rows.length > 0) shopName = sNameRes.rows[0].shop_name;
-        }
-
-        sendServiceBookingEmail(customer_email, booking.id, shopName, preferred_date, preferred_time).catch(e => console.error(e));
+        // Email sending moved to shop admin confirmation (shop.js)
 
         res.status(201).json({
             message: 'Booking created successfully',
@@ -182,8 +227,8 @@ router.get('/bookings/:id', requireAuth, async (req, res) => {
         const bookingRes = await db.query(
             `SELECT sb.*, ap.shop_name, ap.shop_address, ap.phone_number as shop_phone FROM service_bookings sb
              LEFT JOIN admin_profiles ap ON sb.shop_id = ap.id
-             WHERE sb.id = $1`,
-            [bookingId]
+             WHERE sb.id = $1 AND sb.user_id = $2`,
+            [bookingId, req.user.id]
         );
 
         if (bookingRes.rows.length === 0) {
@@ -215,7 +260,7 @@ router.put('/bookings/:id', requireAuth, async (req, res) => {
         const bookingId = req.params.id;
         const { customer_name, customer_phone, customer_email, vehicle_info, preferred_date, preferred_time, additional_notes } = req.body;
 
-        const bookingCheck = await db.query('SELECT status FROM service_bookings WHERE id = $1', [bookingId]);
+        const bookingCheck = await db.query('SELECT status FROM service_bookings WHERE id = $1 AND user_id = $2', [bookingId, req.user.id]);
         if (bookingCheck.rows.length === 0) {
             return res.status(404).json({ error: 'Booking not found' });
         }
@@ -242,7 +287,8 @@ router.put('/bookings/:id', requireAuth, async (req, res) => {
 router.delete('/bookings/:id', requireAuth, async (req, res) => {
     try {
         const bookingId = req.params.id;
-        await db.query("UPDATE service_bookings SET status = 'cancelled' WHERE id = $1", [bookingId]);
+        const result = await db.query("UPDATE service_bookings SET status = 'cancelled' WHERE id = $1 AND user_id = $2 RETURNING id", [bookingId, req.user.id]);
+        if (result.rowCount === 0) return res.status(404).json({ error: 'Booking not found' });
         res.json({ message: 'Booking cancelled successfully' });
     } catch (err) {
         console.error('Booking cancel error:', err);
@@ -256,15 +302,15 @@ router.post('/bookings/:id/verify-otp', requireAuth, async (req, res) => {
         const bookingId = req.params.id;
         const { otp } = req.body;
 
-        const bookingRes = await db.query('SELECT otp FROM service_bookings WHERE id = $1', [bookingId]);
+        const bookingRes = await db.query('SELECT otp FROM service_bookings WHERE id = $1 AND user_id = $2', [bookingId, req.user.id]);
         if (bookingRes.rows.length === 0) {
             return res.status(404).json({ error: 'Booking not found' });
         }
 
         if (bookingRes.rows[0].otp === otp) {
             await db.query(
-                "UPDATE service_bookings SET otp_verified = true, status = 'completed' WHERE id = $1",
-                [bookingId]
+                "UPDATE service_bookings SET otp_verified = true, status = 'completed' WHERE id = $1 AND user_id = $2",
+                [bookingId, req.user.id]
             );
             res.json({ message: 'OTP verified successfully! Booking marked as completed.' });
         } else {
@@ -280,7 +326,7 @@ router.post('/bookings/:id/verify-otp', requireAuth, async (req, res) => {
 router.post('/bookings/:id/pay', requireAuth, async (req, res) => {
     try {
         const bookingId = req.params.id;
-        const bookingRes = await db.query('SELECT * FROM service_bookings WHERE id = $1', [bookingId]);
+        const bookingRes = await db.query('SELECT * FROM service_bookings WHERE id = $1 AND user_id = $2', [bookingId, req.user.id]);
         if (bookingRes.rows.length === 0) {
             return res.status(404).json({ error: 'Booking not found' });
         }
@@ -408,8 +454,8 @@ router.get('/towing/:id', requireAuth, async (req, res) => {
         const towingRes = await db.query(
             `SELECT tr.*, ap.shop_name, ap.phone_number as shop_phone FROM towing_requests tr
              LEFT JOIN admin_profiles ap ON tr.shop_id = ap.id
-             WHERE tr.id = $1`,
-            [req.params.id]
+             WHERE tr.id = $1 AND tr.user_id = $2`,
+            [req.params.id, req.user.id]
         );
 
         if (towingRes.rows.length === 0) {
@@ -429,12 +475,14 @@ router.put('/towing/:id', requireAuth, async (req, res) => {
         const towingId = req.params.id;
         const { full_name, phone_number, vehicle_details, pickup_address, latitude, longitude } = req.body;
 
-        await db.query(
+        const result = await db.query(
             `UPDATE towing_requests
              SET full_name = $1, phone_number = $2, vehicle_details = $3, pickup_address = $4, latitude = $5, longitude = $6
-             WHERE id = $7`,
-            [full_name, phone_number, vehicle_details, pickup_address, latitude || null, longitude || null, towingId]
+             WHERE id = $7 AND user_id = $8 RETURNING id`,
+            [full_name, phone_number, vehicle_details, pickup_address, latitude || null, longitude || null, towingId, req.user.id]
         );
+        
+        if (result.rowCount === 0) return res.status(404).json({ error: 'Towing request not found' });
 
         res.json({ message: 'Towing request updated successfully' });
     } catch (err) {
@@ -446,7 +494,8 @@ router.put('/towing/:id', requireAuth, async (req, res) => {
 // DELETE /api/portal/towing/:id (Cancel)
 router.delete('/towing/:id', requireAuth, async (req, res) => {
     try {
-        await db.query("UPDATE towing_requests SET status = 'cancelled' WHERE id = $1", [req.params.id]);
+        const result = await db.query("UPDATE towing_requests SET status = 'cancelled' WHERE id = $1 AND user_id = $2 RETURNING id", [req.params.id, req.user.id]);
+        if (result.rowCount === 0) return res.status(404).json({ error: 'Towing request not found' });
         res.json({ message: 'Towing request cancelled successfully' });
     } catch (err) {
         console.error('Towing cancel error:', err);
@@ -460,17 +509,17 @@ router.post('/towing/:id/verify-otp', requireAuth, async (req, res) => {
         const towingId = req.params.id;
         const { otp } = req.body;
 
-        const towingRes = await db.query('SELECT otp, email, pickup_address FROM towing_requests WHERE id = $1', [towingId]);
+        const towingRes = await db.query('SELECT otp, email, pickup_address FROM towing_requests WHERE id = $1 AND user_id = $2', [towingId, req.user.id]);
         if (towingRes.rows.length === 0) {
             return res.status(404).json({ error: 'Towing request not found' });
         }
 
         if (towingRes.rows[0].otp === otp) {
             await db.query(
-                "UPDATE towing_requests SET otp_verified = true, status = 'completed' WHERE id = $1",
-                [towingId]
+                "UPDATE towing_requests SET otp_verified = true, status = 'completed' WHERE id = $1 AND user_id = $2",
+                [towingId, req.user.id]
             );
-            
+
             sendTowingRequestEmail(towingRes.rows[0].email, towingId, towingRes.rows[0].pickup_address).catch(e => console.error(e));
 
             res.json({ message: 'Towing OTP verified successfully! Request marked as completed.' });

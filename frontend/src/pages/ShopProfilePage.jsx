@@ -10,6 +10,10 @@ export default function ShopProfilePage() {
         phone_number: '',
         city: '',
         shop_address: '',
+        opening_time: '10:00:00',
+        closing_time: '19:00:00',
+        lunch_start_time: '13:00:00',
+        lunch_end_time: '14:00:00',
     });
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -196,6 +200,52 @@ export default function ShopProfilePage() {
                             value={shop.shop_address || ''}
                             onChange={(e) => setShop({ ...shop, shop_address: e.target.value })}
                         />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Opening Time</label>
+                            <input
+                                type="time"
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 text-sm"
+                                value={shop.opening_time ? shop.opening_time.slice(0, 5) : '10:00'}
+                                onChange={(e) => setShop({ ...shop, opening_time: e.target.value + ':00' })}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Closing Time</label>
+                            <input
+                                type="time"
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 text-sm"
+                                value={shop.closing_time ? shop.closing_time.slice(0, 5) : '19:00'}
+                                onChange={(e) => setShop({ ...shop, closing_time: e.target.value + ':00' })}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Lunch Break Start</label>
+                            <input
+                                type="time"
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 text-sm"
+                                value={shop.lunch_start_time ? shop.lunch_start_time.slice(0, 5) : '13:00'}
+                                onChange={(e) => setShop({ ...shop, lunch_start_time: e.target.value + ':00' })}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Lunch Break End</label>
+                            <input
+                                type="time"
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 text-sm"
+                                value={shop.lunch_end_time ? shop.lunch_end_time.slice(0, 5) : '14:00'}
+                                onChange={(e) => setShop({ ...shop, lunch_end_time: e.target.value + ':00' })}
+                                required
+                            />
+                        </div>
                     </div>
 
                     <button

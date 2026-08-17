@@ -72,6 +72,9 @@ export default function Navbar() {
                             <NavLink to="/shop/messages" className={linkClasses}>
                                 <i className="fas fa-inbox w-5 text-center"></i> Messages Inbox
                             </NavLink>
+                            <NavLink to="/shop/day-end" className={linkClasses}>
+                                <i className="fas fa-calendar-check w-5 text-center"></i> Day-End Closing
+                            </NavLink>
                             <NavLink to="/shop/profile" className={linkClasses}>
                                 <i className="fas fa-store w-5 text-center"></i> Shop Profile
                             </NavLink>

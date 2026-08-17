@@ -9,6 +9,26 @@ export default function ShopDashboard() {
     const [shop, setShop] = useState(null);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null, newStatus: '', currentStatus: '', type: '' });
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [selectedBooking, setSelectedBooking] = useState(null);
+    const [saving, setSaving] = useState(false);
+
+    const statusOrder = ['pending', 'confirmed', 'processing', 'completed'];
+    const towingStatusOrder = ['pending', 'processing', 'completed'];
+
+    const isStatusDisabled = (currentStatus, targetStatus, type) => {
+        if (currentStatus === targetStatus) return false;
+        if (currentStatus === 'cancelled' || currentStatus === 'completed') return true;
+        if (targetStatus === 'cancelled') return false;
+        
+        const orderArray = type === 'towing' ? towingStatusOrder : statusOrder;
+        const currentIndex = orderArray.indexOf(currentStatus);
+        const targetIndex = orderArray.indexOf(targetStatus);
+        
+        if (currentIndex === -1 || targetIndex === -1) return true;
+        return targetIndex < currentIndex;
+    };
 
     const fetchShopDashboard = async () => {
         try {
@@ -32,6 +52,37 @@ export default function ShopDashboard() {
             fetchShopDashboard();
         } catch (err) {
             toast.error('Failed to update booking status');
+        }
+    };
+
+    const handleQuickStatusDropdown = (booking, newStatus, type) => {
+        if (type === 'service' && newStatus === 'completed') {
+            if (!booking.is_paid) {
+                setSelectedBooking(booking);
+                setIsPaymentModalOpen(true);
+            } else {
+                handleUpdateBookingStatus(booking.id, 'completed');
+            }
+        } else {
+            setConfirmModal({ isOpen: true, id: booking.id, newStatus, currentStatus: booking.status, type });
+        }
+    };
+
+    const executePaymentSave = async (isPaid, sendPaymentLink) => {
+        setSaving(true);
+        try {
+            await api.put(`/shop/service-orders/${selectedBooking.id}`, { 
+                status: 'completed', 
+                is_paid: isPaid, 
+                send_payment_link: sendPaymentLink 
+            });
+            setIsPaymentModalOpen(false);
+            fetchShopDashboard();
+            toast.success('Service order updated successfully');
+        } catch (err) {
+            toast.error('Failed to update order details');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -163,13 +214,13 @@ export default function ShopDashboard() {
                                             <select
                                                 className="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:border-blue-600"
                                                 value={b.status}
-                                                onChange={(e) => handleUpdateBookingStatus(b.id, e.target.value)}
+                                                onChange={(e) => handleQuickStatusDropdown(b, e.target.value, 'service')}
                                             >
-                                                <option value="pending">Pending</option>
-                                                <option value="confirmed">Confirmed</option>
-                                                <option value="processing">In Progress</option>
-                                                <option value="completed">Completed</option>
-                                                <option value="cancelled">Cancelled</option>
+                                                <option value="pending" disabled={isStatusDisabled(b.status, 'pending', 'service')}>Pending</option>
+                                                <option value="confirmed" disabled={isStatusDisabled(b.status, 'confirmed', 'service')}>Confirmed</option>
+                                                <option value="processing" disabled={isStatusDisabled(b.status, 'processing', 'service')}>In Progress</option>
+                                                <option value="completed" disabled={isStatusDisabled(b.status, 'completed', 'service')}>Completed</option>
+                                                <option value="cancelled" disabled={isStatusDisabled(b.status, 'cancelled', 'service')}>Cancelled</option>
                                             </select>
                                         </td>
                                     </tr>
@@ -222,12 +273,12 @@ export default function ShopDashboard() {
                                             <select
                                                 className="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:border-blue-600"
                                                 value={t.status}
-                                                onChange={(e) => handleUpdateTowingStatus(t.id, e.target.value)}
+                                                onChange={(e) => setConfirmModal({ isOpen: true, id: t.id, newStatus: e.target.value, currentStatus: t.status, type: 'towing' })}
                                             >
-                                                <option value="pending">Looking for Driver</option>
-                                                <option value="processing">Driver En Route</option>
-                                                <option value="completed">Completed</option>
-                                                <option value="cancelled">Cancelled</option>
+                                                <option value="pending" disabled={isStatusDisabled(t.status, 'pending', 'towing')}>Looking for Driver</option>
+                                                <option value="processing" disabled={isStatusDisabled(t.status, 'processing', 'towing')}>Driver En Route</option>
+                                                <option value="completed" disabled={isStatusDisabled(t.status, 'completed', 'towing')}>Completed</option>
+                                                <option value="cancelled" disabled={isStatusDisabled(t.status, 'cancelled', 'towing')}>Cancelled</option>
                                             </select>
                                         </td>
                                     </tr>
@@ -237,7 +288,64 @@ export default function ShopDashboard() {
                     </div>
                 )}
             </div>
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, id: null, newStatus: '', currentStatus: '', type: '' })}
+                onConfirm={() => {
+                    if (confirmModal.type === 'service') {
+                        handleUpdateBookingStatus(confirmModal.id, confirmModal.newStatus);
+                    } else if (confirmModal.type === 'towing') {
+                        handleUpdateTowingStatus(confirmModal.id, confirmModal.newStatus);
+                    }
+                }}
+                title="Confirm Status Change"
+                message={`Are you sure you want to change the status from '${confirmModal.currentStatus}' to '${confirmModal.newStatus}'? This action cannot be undone.`}
+                confirmText="Yes, Change Status"
+                confirmColor="blue"
+            />
             
+            {/* Payment Collection Modal */}
+            {isPaymentModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 sm:p-8 relative">
+                        <button className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors" onClick={() => setIsPaymentModalOpen(false)}>
+                            <i className="fas fa-times"></i>
+                        </button>
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-500">
+                                <i className="fas fa-hand-holding-dollar text-2xl"></i>
+                            </div>
+                            <h2 className="text-xl font-extrabold text-slate-900">Payment Collection</h2>
+                            <p className="text-sm text-slate-500 mt-2">
+                                You are marking this service as completed, but payment hasn't been collected yet.
+                            </p>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
+                            <p className="text-center font-bold text-slate-700">Estimated Amount Due</p>
+                            <p className="text-center text-3xl font-extrabold text-blue-600 mt-1">
+                                ₹{selectedBooking?.total_cost || 0}
+                            </p>
+                        </div>
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => executePaymentSave(true, false)}
+                                disabled={saving}
+                                className="w-full py-3 px-4 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center justify-center gap-2"
+                            >
+                                {saving ? <i className="fas fa-spinner fa-spin"></i> : <><i className="fas fa-check-circle"></i> Yes, Cash/UPI Collected</>}
+                            </button>
+                            <button
+                                onClick={() => executePaymentSave(false, true)}
+                                disabled={saving}
+                                className="w-full py-3 px-4 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors flex items-center justify-center gap-2"
+                            >
+                                {saving ? <i className="fas fa-spinner fa-spin"></i> : <><i className="fas fa-paper-plane"></i> No, Send Online Payment Link</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

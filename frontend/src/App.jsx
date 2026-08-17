@@ -30,6 +30,7 @@ import ShopProfilePage from './pages/ShopProfilePage';
 import ShopServiceOrders from './pages/ShopServiceOrders';
 import ShopTowingOrders from './pages/ShopTowingOrders';
 import ShopMessagesPage from './pages/ShopMessagesPage';
+import ShopDayEnd from './pages/ShopDayEnd';
 
 // Super Admin Pages
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
@@ -98,6 +99,7 @@ function MainApp() {
                         <Route path="/shop/service-orders" element={<ProtectedRoute allowStaff={true}><ShopServiceOrders /></ProtectedRoute>} />
                         <Route path="/shop/towing-orders" element={<ProtectedRoute allowStaff={true}><ShopTowingOrders /></ProtectedRoute>} />
                         <Route path="/shop/messages" element={<ProtectedRoute allowStaff={true}><ShopMessagesPage /></ProtectedRoute>} />
+                        <Route path="/shop/day-end" element={<ProtectedRoute allowStaff={true}><ShopDayEnd /></ProtectedRoute>} />
 
                         {/* Super Admin Routes */}
                         <Route path="/admin/dashboard" element={<ProtectedRoute allowSuperAdmin={true}><SuperAdminDashboard /></ProtectedRoute>} />

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { requireStaff } = require('../middleware/auth');
+const { sendServiceBookingEmail } = require('../utils/email');
 
 // Helper to get shop profile for staff user
 async function getShopProfile(userId) {
@@ -59,24 +60,84 @@ router.get('/profile', requireStaff, async (req, res) => {
     }
 });
 
+// GET /api/shop/day-end-report
+router.get('/day-end-report', requireStaff, async (req, res) => {
+    try {
+        const shop = await getShopProfile(req.user.id);
+        
+        // Use CURRENT_DATE to get today's bookings
+        const bookingsRes = await db.query(
+            `SELECT sb.*, 
+                    COALESCE(json_agg(json_build_object('price_starts_at', so.price_starts_at)) FILTER (WHERE so.id IS NOT NULL), '[]') as services
+             FROM service_bookings sb
+             LEFT JOIN service_booking_items sbi ON sb.id = sbi.booking_id
+             LEFT JOIN service_offerings so ON sbi.service_id = so.id
+             WHERE sb.shop_id = $1 AND sb.preferred_date = CURRENT_DATE
+             GROUP BY sb.id`,
+            [shop.id]
+        );
+
+        const bookings = bookingsRes.rows;
+        
+        // Calculate stats
+        let totalRevenue = 0;
+        let expectedRevenue = 0;
+        let completedCount = 0;
+        let pendingCount = 0;
+        
+        const bookingsWithCost = bookings.map(b => {
+            const cost = b.services.reduce((sum, s) => sum + parseFloat(s.price_starts_at || 0), 0);
+            if (b.status === 'completed') {
+                completedCount++;
+                if (b.is_paid) {
+                    totalRevenue += cost;
+                }
+            } else if (b.status !== 'cancelled') {
+                pendingCount++;
+            }
+            expectedRevenue += cost;
+            return { ...b, total_cost: cost };
+        });
+
+        res.json({
+            date: new Date().toISOString().split('T')[0],
+            stats: {
+                total_bookings: bookings.length,
+                completed_bookings: completedCount,
+                pending_bookings: pendingCount,
+                collected_revenue: totalRevenue,
+                expected_revenue: expectedRevenue
+            },
+            bookings: bookingsWithCost
+        });
+    } catch (err) {
+        console.error('Day end report error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // PUT /api/shop/profile
 router.put('/profile', requireStaff, async (req, res) => {
     try {
-        const { full_name, shop_name, phone_number, city, shop_address } = req.body;
+        const { full_name, shop_name, phone_number, city, shop_address, opening_time, closing_time, lunch_start_time, lunch_end_time } = req.body;
         const shop = await getShopProfile(req.user.id);
 
         if (shop) {
             await db.query(
                 `UPDATE admin_profiles
-                 SET full_name = $1, shop_name = $2, phone_number = $3, city = $4, shop_address = $5
-                 WHERE id = $6`,
-                [full_name || '', shop_name, phone_number || '', city || '', shop_address || '', shop.id]
+                 SET full_name = $1, shop_name = $2, phone_number = $3, city = $4, shop_address = $5,
+                     opening_time = $6, closing_time = $7, lunch_start_time = $8, lunch_end_time = $9
+                 WHERE id = $10`,
+                [full_name || '', shop_name, phone_number || '', city || '', shop_address || '',
+                 opening_time || '10:00:00', closing_time || '19:00:00', lunch_start_time || '13:00:00', lunch_end_time || '14:00:00',
+                 shop.id]
             );
         } else {
             await db.query(
-                `INSERT INTO admin_profiles (user_id, full_name, shop_name, phone_number, city, shop_address)
-                 VALUES ($1, $2, $3, $4, $5, $6)`,
-                [req.user.id, full_name || '', shop_name, phone_number || '', city || '', shop_address || '']
+                `INSERT INTO admin_profiles (user_id, full_name, shop_name, phone_number, city, shop_address, opening_time, closing_time, lunch_start_time, lunch_end_time)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+                [req.user.id, full_name || '', shop_name, phone_number || '', city || '', shop_address || '',
+                 opening_time || '10:00:00', closing_time || '19:00:00', lunch_start_time || '13:00:00', lunch_end_time || '14:00:00']
             );
         }
 
@@ -171,11 +232,25 @@ router.get('/service-orders', requireStaff, async (req, res) => {
 
 router.put('/service-orders/:id', requireStaff, async (req, res) => {
     try {
-        const { status, customer_name, customer_phone, customer_email, vehicle_info, is_paid } = req.body;
-        
+        const { status, customer_name, customer_phone, customer_email, vehicle_info, is_paid, send_payment_link } = req.body;
+
         const currentRes = await db.query('SELECT * FROM service_bookings WHERE id = $1', [req.params.id]);
         if (currentRes.rows.length === 0) return res.status(404).json({ error: 'Booking not found' });
         const current = currentRes.rows[0];
+
+        const statusOrder = ['pending', 'confirmed', 'processing', 'completed'];
+        if (status && status !== current.status) {
+            if (current.status === 'completed' || current.status === 'cancelled') {
+                return res.status(400).json({ error: 'Cannot change status of a completed or cancelled order' });
+            }
+            if (status !== 'cancelled') {
+                const currIdx = statusOrder.indexOf(current.status);
+                const newIdx = statusOrder.indexOf(status);
+                if (newIdx <= currIdx) {
+                    return res.status(400).json({ error: 'Status cannot be rolled back to a previous state' });
+                }
+            }
+        }
 
         await db.query(
             `UPDATE service_bookings
@@ -191,6 +266,35 @@ router.put('/service-orders/:id', requireStaff, async (req, res) => {
                 req.params.id
             ]
         );
+
+        if (status === 'confirmed' && current.status !== 'confirmed') {
+            const shopProfile = await getShopProfile(req.user.id);
+            const shopName = shopProfile ? shopProfile.shop_name : 'Assigned AutoFusion Hub';
+            const emailTarget = customer_email !== undefined ? customer_email : current.customer_email;
+            sendServiceBookingEmail(
+                emailTarget, 
+                req.params.id, 
+                shopName, 
+                current.preferred_date, 
+                current.preferred_time
+            ).catch(e => console.error(e));
+        }
+
+        if (send_payment_link && status === 'completed') {
+            const emailTarget = customer_email !== undefined ? customer_email : current.customer_email;
+            const nameTarget = customer_name !== undefined ? customer_name : current.customer_name;
+            // First fetch the total cost from the database, or just calculate it
+            const serviceRes = await db.query(
+                `SELECT SUM(so.price_starts_at) as total_cost 
+                 FROM service_offerings so
+                 JOIN service_bookings_services sbs ON so.id = sbs.service_id
+                 WHERE sbs.booking_id = $1`,
+                [req.params.id]
+            );
+            const totalCost = serviceRes.rows[0]?.total_cost || 0;
+            const { sendPaymentLinkEmail } = require('../utils/email');
+            sendPaymentLinkEmail(emailTarget, req.params.id, totalCost, nameTarget).catch(e => console.error(e));
+        }
 
         res.json({ message: 'Service order updated successfully' });
     } catch (err) {
@@ -224,20 +328,35 @@ router.get('/towing-orders', requireStaff, async (req, res) => {
 router.put('/towing-orders/:id', requireStaff, async (req, res) => {
     try {
         const { status, full_name, phone_number, vehicle_details, pickup_address } = req.body;
+        
+        const currentRes = await db.query('SELECT * FROM towing_requests WHERE id = $1', [req.params.id]);
+        if (currentRes.rows.length === 0) return res.status(404).json({ error: 'Towing request not found' });
+        const current = currentRes.rows[0];
+
+        const towingStatusOrder = ['pending', 'processing', 'completed'];
+        if (status && status !== current.status) {
+            if (current.status === 'completed' || current.status === 'cancelled') {
+                return res.status(400).json({ error: 'Cannot change status of a completed or cancelled request' });
+            }
+            if (status !== 'cancelled') {
+                const currIdx = towingStatusOrder.indexOf(current.status);
+                const newIdx = towingStatusOrder.indexOf(status);
+                if (newIdx <= currIdx) {
+                    return res.status(400).json({ error: 'Status cannot be rolled back to a previous state' });
+                }
+            }
+        }
+
         await db.query(
             `UPDATE towing_requests
-             SET status = COALESCE($1, status), 
-                 full_name = COALESCE($2, full_name), 
-                 phone_number = COALESCE($3, phone_number), 
-                 vehicle_details = COALESCE($4, vehicle_details), 
-                 pickup_address = COALESCE($5, pickup_address)
+             SET status = $1, full_name = $2, phone_number = $3, vehicle_details = $4, pickup_address = $5
              WHERE id = $6`,
             [
-                status !== undefined ? status : null,
-                full_name !== undefined ? full_name : null,
-                phone_number !== undefined ? phone_number : null,
-                vehicle_details !== undefined ? vehicle_details : null,
-                pickup_address !== undefined ? pickup_address : null,
+                status !== undefined ? status : current.status,
+                full_name !== undefined ? full_name : current.full_name,
+                phone_number !== undefined ? phone_number : current.phone_number,
+                vehicle_details !== undefined ? vehicle_details : current.vehicle_details,
+                pickup_address !== undefined ? pickup_address : current.pickup_address,
                 req.params.id
             ]
         );

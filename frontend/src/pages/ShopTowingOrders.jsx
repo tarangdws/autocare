@@ -9,6 +9,7 @@ export default function ShopTowingOrders() {
     const [counts, setCounts] = useState({});
     const [filter, setFilter] = useState('all');
     const [loading, setLoading] = useState(true);
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null, newStatus: '', currentStatus: '' });
 
     const fetchTowing = async () => {
         try {
@@ -29,6 +30,19 @@ export default function ShopTowingOrders() {
     const filteredList = filter === 'all'
         ? towingList
         : towingList.filter(t => t.status === filter);
+
+    const towingStatusOrder = ['pending', 'processing', 'completed'];
+    const isStatusDisabled = (currentStatus, targetStatus) => {
+        if (currentStatus === targetStatus) return false;
+        if (currentStatus === 'cancelled' || currentStatus === 'completed') return true;
+        if (targetStatus === 'cancelled') return false;
+        
+        const currentIndex = towingStatusOrder.indexOf(currentStatus);
+        const targetIndex = towingStatusOrder.indexOf(targetStatus);
+        
+        if (currentIndex === -1 || targetIndex === -1) return true;
+        return targetIndex < currentIndex;
+    };
 
     const handleQuickStatusChange = async (towingId, newStatus) => {
         try {
@@ -142,12 +156,12 @@ export default function ShopTowingOrders() {
                                             <select
                                                 className="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:border-blue-600"
                                                 value={t.status}
-                                                onChange={(e) => handleQuickStatusChange(t.id, e.target.value)}
+                                                onChange={(e) => setConfirmModal({ isOpen: true, id: t.id, newStatus: e.target.value, currentStatus: t.status })}
                                             >
-                                                <option value="pending">Looking for Driver</option>
-                                                <option value="processing">Driver En Route</option>
-                                                <option value="completed">Completed</option>
-                                                <option value="cancelled">Cancelled</option>
+                                                <option value="pending" disabled={isStatusDisabled(t.status, 'pending')}>Looking for Driver</option>
+                                                <option value="processing" disabled={isStatusDisabled(t.status, 'processing')}>Driver En Route</option>
+                                                <option value="completed" disabled={isStatusDisabled(t.status, 'completed')}>Completed</option>
+                                                <option value="cancelled" disabled={isStatusDisabled(t.status, 'cancelled')}>Cancelled</option>
                                             </select>
                                         </td>
                                     </tr>
@@ -157,6 +171,16 @@ export default function ShopTowingOrders() {
                     </div>
                 )}
             </div>
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, id: null, newStatus: '', currentStatus: '' })}
+                onConfirm={() => handleQuickStatusChange(confirmModal.id, confirmModal.newStatus)}
+                title="Confirm Status Change"
+                message={`Are you sure you want to change the status from '${confirmModal.currentStatus}' to '${confirmModal.newStatus}'? This action cannot be undone.`}
+                confirmText="Yes, Change Status"
+                confirmColor="blue"
+            />
             
         </div>
     );

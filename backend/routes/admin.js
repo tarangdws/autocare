@@ -145,10 +145,15 @@ router.post('/add-provider', requireSuperAdmin, async (req, res) => {
     }
 });
 
-// DELETE /api/admin/providers/:id (user_id)
+// DELETE /api/admin/providers/:id (admin_profiles id)
 router.delete('/providers/:id', requireSuperAdmin, async (req, res) => {
     try {
-        await db.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+        const profileRes = await db.query('SELECT user_id FROM admin_profiles WHERE id = $1', [req.params.id]);
+        if (profileRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Service provider not found' });
+        }
+        const userId = profileRes.rows[0].user_id;
+        await db.query('DELETE FROM users WHERE id = $1', [userId]);
         res.json({ message: 'Service provider deleted successfully' });
     } catch (err) {
         console.error('Superadmin delete provider error:', err);

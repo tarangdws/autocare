@@ -12,6 +12,8 @@ export default function ShopServiceOrders() {
 
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null, newStatus: '', currentStatus: '' });
     const [editForm, setEditForm] = useState({
         status: '',
         customer_name: '',
@@ -42,12 +44,46 @@ export default function ShopServiceOrders() {
         ? bookings
         : bookings.filter(b => b.status === filter);
 
+    const statusOrder = ['pending', 'confirmed', 'processing', 'completed'];
+    const isStatusDisabled = (currentStatus, targetStatus) => {
+        if (currentStatus === targetStatus) return false;
+        if (currentStatus === 'cancelled' || currentStatus === 'completed') return true;
+        if (targetStatus === 'cancelled') return false;
+        
+        const currentIndex = statusOrder.indexOf(currentStatus);
+        const targetIndex = statusOrder.indexOf(targetStatus);
+        
+        if (currentIndex === -1 || targetIndex === -1) return true;
+        return targetIndex < currentIndex;
+    };
+
     const handleQuickStatusChange = async (bookingId, newStatus) => {
         try {
             await api.put(`/shop/service-orders/${bookingId}`, { status: newStatus });
             fetchOrders();
         } catch (err) {
             toast.error('Failed to update booking status');
+        }
+    };
+
+    const handleQuickStatusDropdown = (booking, newStatus) => {
+        if (newStatus === 'completed') {
+            if (!booking.is_paid) {
+                setSelectedBooking(booking);
+                setEditForm({
+                    status: 'completed',
+                    customer_name: booking.customer_name,
+                    customer_phone: booking.customer_phone,
+                    customer_email: booking.customer_email,
+                    vehicle_info: booking.vehicle_info,
+                    is_paid: booking.is_paid,
+                });
+                setIsPaymentModalOpen(true);
+            } else {
+                handleQuickStatusChange(booking.id, 'completed');
+            }
+        } else {
+            setConfirmModal({ isOpen: true, id: booking.id, newStatus, currentStatus: booking.status });
         }
     };
 
@@ -65,17 +101,33 @@ export default function ShopServiceOrders() {
     };
 
     const handleSaveEdit = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
+        
+        if (editForm.status === 'completed' && !editForm.is_paid) {
+            setIsPaymentModalOpen(true);
+            return;
+        }
+
+        executeSave(editForm);
+    };
+
+    const executeSave = async (payload) => {
         setSaving(true);
         try {
-            await api.put(`/shop/service-orders/${selectedBooking.id}`, editForm);
+            await api.put(`/shop/service-orders/${selectedBooking.id}`, payload);
             setIsEditModalOpen(false);
+            setIsPaymentModalOpen(false);
             fetchOrders();
+            toast.success('Service order updated successfully');
         } catch (err) {
             toast.error('Failed to update order details');
         } finally {
             setSaving(false);
         }
+    };
+
+    const handlePaymentAction = (isPaid, sendPaymentLink) => {
+        executeSave({ ...editForm, is_paid: isPaid, send_payment_link: sendPaymentLink });
     };
 
     if (loading) {
@@ -183,13 +235,13 @@ export default function ShopServiceOrders() {
                                             <select
                                                 className="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:border-blue-600"
                                                 value={b.status}
-                                                onChange={(e) => handleQuickStatusChange(b.id, e.target.value)}
+                                                onChange={(e) => handleQuickStatusDropdown(b, e.target.value)}
                                             >
-                                                <option value="pending">Pending</option>
-                                                <option value="confirmed">Confirmed</option>
-                                                <option value="processing">In Progress</option>
-                                                <option value="completed">Completed</option>
-                                                <option value="cancelled">Cancelled</option>
+                                                <option value="pending" disabled={isStatusDisabled(b.status, 'pending')}>Pending</option>
+                                                <option value="confirmed" disabled={isStatusDisabled(b.status, 'confirmed')}>Confirmed</option>
+                                                <option value="processing" disabled={isStatusDisabled(b.status, 'processing')}>In Progress</option>
+                                                <option value="completed" disabled={isStatusDisabled(b.status, 'completed')}>Completed</option>
+                                                <option value="cancelled" disabled={isStatusDisabled(b.status, 'cancelled')}>Cancelled</option>
                                             </select>
                                         </td>
                                         <td className="py-3 px-4">
@@ -231,11 +283,11 @@ export default function ShopServiceOrders() {
                                     value={editForm.status}
                                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                                 >
-                                    <option value="pending">Pending Confirmation</option>
-                                    <option value="confirmed">Confirmed</option>
-                                    <option value="processing">Service In Progress</option>
-                                    <option value="completed">Completed & Ready for Handover</option>
-                                    <option value="cancelled">Cancelled</option>
+                                    <option value="pending" disabled={isStatusDisabled(selectedBooking?.status, 'pending')}>Pending Confirmation</option>
+                                    <option value="confirmed" disabled={isStatusDisabled(selectedBooking?.status, 'confirmed')}>Confirmed</option>
+                                    <option value="processing" disabled={isStatusDisabled(selectedBooking?.status, 'processing')}>Service In Progress</option>
+                                    <option value="completed" disabled={isStatusDisabled(selectedBooking?.status, 'completed')}>Completed & Ready for Handover</option>
+                                    <option value="cancelled" disabled={isStatusDisabled(selectedBooking?.status, 'cancelled')}>Cancelled</option>
                                 </select>
                             </div>
 
@@ -298,6 +350,58 @@ export default function ShopServiceOrders() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, id: null, newStatus: '', currentStatus: '' })}
+                onConfirm={() => handleQuickStatusChange(confirmModal.id, confirmModal.newStatus)}
+                title="Confirm Status Change"
+                message={`Are you sure you want to change the status from '${confirmModal.currentStatus}' to '${confirmModal.newStatus}'? This action cannot be undone.`}
+                confirmText="Yes, Change Status"
+                confirmColor="blue"
+            />
+            
+            {/* Payment Collection Modal */}
+            {isPaymentModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 sm:p-8 relative">
+                        <button className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors" onClick={() => setIsPaymentModalOpen(false)}>
+                            <i className="fas fa-times"></i>
+                        </button>
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-500">
+                                <i className="fas fa-hand-holding-dollar text-2xl"></i>
+                            </div>
+                            <h2 className="text-xl font-extrabold text-slate-900">Payment Collection</h2>
+                            <p className="text-sm text-slate-500 mt-2">
+                                You are marking this service as completed, but payment hasn't been collected yet.
+                            </p>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
+                            <p className="text-center font-bold text-slate-700">Estimated Amount Due</p>
+                            <p className="text-center text-3xl font-extrabold text-blue-600 mt-1">
+                                ₹{selectedBooking?.total_cost || 0}
+                            </p>
+                        </div>
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => handlePaymentAction(true, false)}
+                                disabled={saving}
+                                className="w-full py-3 px-4 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center justify-center gap-2"
+                            >
+                                {saving ? <i className="fas fa-spinner fa-spin"></i> : <><i className="fas fa-check-circle"></i> Yes, Cash/UPI Collected</>}
+                            </button>
+                            <button
+                                onClick={() => handlePaymentAction(false, true)}
+                                disabled={saving}
+                                className="w-full py-3 px-4 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors flex items-center justify-center gap-2"
+                            >
+                                {saving ? <i className="fas fa-spinner fa-spin"></i> : <><i className="fas fa-paper-plane"></i> No, Send Online Payment Link</>}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

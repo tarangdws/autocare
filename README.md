@@ -359,26 +359,6 @@ If this succeeds, PostgreSQL is ready.
 
 Create this file — it is not committed:
 
-```env
-# Server
-PORT=5000
-
-# Database — used by both db/index.js (runtime) and db/init.js (seeding).
-# Set this explicitly to avoid the mismatched-defaults problem described above.
-# URL-encode special characters in the password (@ becomes %40).
-DATABASE_URL=postgresql://admin:admin%40123@localhost:5434/autocare_db
-
-# Used only by db/init.js to connect before autocare_db exists,
-# so it can issue CREATE DATABASE. Point at the maintenance database.
-PG_BASE_URL=postgresql://postgres:YOUR_POSTGRES_PASSWORD@localhost:5434/postgres
-DB_NAME=autocare_db
-
-# Auth — generate your own; do not ship the built-in fallback
-JWT_SECRET=replace_this_with_a_long_random_string
-
-# Stripe (optional). Omit and the backend falls back to mock payment intent IDs.
-STRIPE_SECRET_KEY=sk_test_your_stripe_test_key
-```
 
 **Full list of variables the backend reads**
 

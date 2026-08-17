@@ -190,4 +190,38 @@ async function sendTowingRequestEmail(to, requestId, pickupAddress) {
     }
 }
 
-module.exports = { sendOTPByEmail, sendWelcomeEmail, sendAdminCredentialsEmail, sendServiceBookingEmail, sendTowingRequestEmail };
+async function sendPaymentLinkEmail(to, bookingId, totalCost, customerName) {
+    try {
+        const mailer = await setupTransporter();
+        const paymentLink = `http://localhost:5173/bookings/${bookingId}`;
+        const info = await mailer.sendMail({
+            from: '"AutoFusion" <no-reply@autofusion.com>',
+            to: to,
+            subject: `AutoFusion - Your Vehicle is Ready! (Invoice #${bookingId})`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
+                    <h2 style="color: #2563eb; margin-top: 0;">Your Vehicle is Ready for Pickup!</h2>
+                    <p style="font-size: 16px; color: #475569;">Hello ${customerName || 'Customer'},</p>
+                    <p style="font-size: 16px; color: #475569;">The service on your vehicle is complete and it's ready to be picked up from the workshop.</p>
+                    <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+                        <p style="margin-bottom: 5px; color: #333;"><strong>Booking ID:</strong> #${bookingId}</p>
+                        <p style="margin-bottom: 5px; color: #333;"><strong>Total Amount Due:</strong> ₹${totalCost}</p>
+                    </div>
+                    <p style="font-size: 16px; color: #475569;">To speed up the handover process, you can securely pay your invoice online right now:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${paymentLink}" style="background-color: #4f46e5; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">Pay Online via Stripe</a>
+                    </div>
+                    <p style="font-size: 14px; color: #64748b; margin-top: 20px;">Thank you for trusting AutoFusion!</p>
+                </div>
+            `,
+        });
+
+        console.log(`[EMAIL SENT] Payment Link To: ${to} | MessageId: ${info.messageId}`);
+        return true;
+    } catch (err) {
+        console.error('[EMAIL ERROR] Failed to send payment link email:', err.message);
+        return false;
+    }
+}
+
+module.exports = { sendOTPByEmail, sendWelcomeEmail, sendAdminCredentialsEmail, sendServiceBookingEmail, sendTowingRequestEmail, sendPaymentLinkEmail };
